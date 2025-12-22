@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+*{
+    margin: 0;
+    padding: 0;
+}
+
+h1{
+    font-family: "Montserrat", sans-serif;
+    text-align: center;
+    color: white;
+    position: relative;
+    top: 20px;
+}
+main{
+    background: #2C3E50;
+
+    label{
+        font-family: "Montserrat", sans-serif;
+        color: white;
+        padding: 40px;
+    }
+
+    form{
+        margin-top: 50px;
+        font-family: "Montserrat", sans-serif;
+        display: block;
+
+        input, textarea, select{
+            width: 350px;
+            height: 35px;
+            font-size: 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: end;
+            margin-left: 20%;
+            resize: none;
+            background-color: #34495E;
+            color: white;
+            border: white;
+        }
+    }
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #34495E;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-family: "Montserrat", sans-serif;
+    position: relative;
+    left: 20%;
+
+}
+button:hover {
+    background-color: #1c7ed6;
+}
+
+@media(max-width: 425px){
+    main{
+        background: #2C3E50;
+    
+        label{
+            font-family: "Montserrat", sans-serif;
+            color: white;
+            padding: 40px;
+        }
+    
+        form{
+            margin-top: 50px;
+            font-family: "Montserrat", sans-serif;
+            display: block;
+
+            .CreateBtn{
+                margin-bottom: 20px;
+            }
+    
+            input, textarea, select{
+                margin-left: 10px;
+            }
+        }
+    }
+}

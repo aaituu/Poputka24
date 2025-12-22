@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+
+    .bottom{
+        text-align: center;
+
+        a{
+            text-decoration: underline;
+            color: #34495E;
+        }
+    }
+}
+header {
+    background-color: #34495E;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+    .logo{
+        h1{
+            color: white;
+            font-family: "Montserrat", sans-serif;
+        }
+    }
+
+}
+nav a {
+    margin: 0 15px;
+    text-decoration: none;
+    color: #ffffff;
+    font-family: "Montserrat", sans-serif;
+}
+.hero-section {
+    background: #2C3E50; /* Подставь правильный путь к картинке */
+    background-size: cover;
+    background-position: center;
+    height: 89.5vh;
+    position: relative;
+}
+.hero-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    text-align: center;
+    font-family: "Montserrat", sans-serif;
+}
+.hero-content h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    font-family: "Montserrat", sans-serif;
+}
+.hero-content p {
+    font-size: 24px;
+    margin-bottom: 30px;
+    font-family: "Montserrat", sans-serif;
+}
+.hero-content button {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #34495E;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-family: "Montserrat", sans-serif;
+}
+.hero-content button:hover {
+    background-color: #1c7ed6;
+}
+
+@media(max-width: 425px) {
+    header{
+        display: block;
+
+        .logo{
+        }
+
+        nav{
+
+        }
+    }
+
+    .hero-section{
+
+        .hero-content{
+            a{
+
+                .ExitBtn{
+                    
+                }
+
+                .CreateBtn{
+                    margin-top: 10px;
+                }
+
+                button{
+
+                }
+
+                .tak{
+                    margin-bottom: 10px;
+                }
+            }
+        }
+    }
+}
+
+@media(max-width: 768px) {
+    header{
+
+        .logo{
+            position: relative;
+
+            h1{
+
+            }
+        }
+
+        nav{
+
+        }
+    }
+
+    .hero-section{
+        height: 140vh;
+
+        .hero-content{
+
+            
+
+            a{
+
+                .ExitBtn{
+                    
+                }
+
+                .CreateBtn{
+                    margin-top: 10px;
+                }
+
+                button{
+
+                }
+
+                .tak{
+                    margin-bottom: 10px;
+                }
+            }
+        }
+    }
+}

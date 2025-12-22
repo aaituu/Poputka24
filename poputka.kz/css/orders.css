@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+*{
+    margin: 0;
+    padding: 0;
+}
+
+body{
+    background-color: #2C3E50;
+
+    h1{
+        color: white;
+        font-family: "Montserrat", sans-serif;
+        margin-top: 20px;
+    }
+
+    form{
+        color: white;
+
+        label{
+            font-family: "Montserrat", sans-serif;
+            color: white;
+        }
+    }
+
+    .form{
+        margin-left: 20px;
+        label{
+            color: white;
+            font-size: 18px;
+            font-family: "Montserrat", sans-serif;
+        }
+
+        select{
+            width: 350px;
+            height: 35px;
+            font-size: 18px;
+            border-radius: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            margin-left: 10px;
+
+            background-color: #34495E;
+            color: white;
+            border: white;
+        }
+    }
+
+    .glav{
+        width: 300px;
+        border: 1px solid white;
+        text-align: center;
+        border-radius: 20px;
+        margin-top: 20px;
+        margin-left: 20%;
+        margin-right: 50%;
+        transition: 1s ease-in-out;
+        
+        a{
+            color: white;
+            text-decoration: none;
+            width: 300px;
+            font-size: 30px;
+        }
+
+        &:hover{
+            transform: scale(1.05);
+            transition: 1s ease-in-out;
+        }
+    }
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #34495E;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-family: "Montserrat", sans-serif;
+
+    &:active{
+        background-color: #1c7ed6;
+    }
+
+    &:hover{
+        background-color: #1c7ed6;
+    }
+
+}
+
+ul{
+    width: 100%;
+    li{
+        border-bottom: 1px solid white;
+        border-radius: 35px;
+        padding: 10px;
+        margin-top: 10px;
+        color: white;
+        transition: 1s;
+        a{
+            font-family: "Montserrat", sans-serif;
+            color: white;
+            text-decoration: none;
+        }
+    }
+
+    li:hover{
+        transition: ease-in-out 1.5s;
+    }
+}
+
+@media (max-width: 768px) {
+    form select, form label, form button {
+        width: 100%;  /* каждый элемент будет занимать всю ширину контейнера */
+    }
+
+    form select{
+        height: 30px;
+    }
+}
+
+@media screen and (max-width: 425px){
+    .form{
+        display: block;
+    }
+
+    .glav{
+        margin-left: 20px;
+        width: 200px;
+    }
+
+}

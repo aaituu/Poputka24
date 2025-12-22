@@ -1,0 +1,114 @@
+/* Основные стили для страницы профиля */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2em;
+    margin-top: 20px;
+}
+
+h2 {
+    font-size: 1.5em;
+    margin-top: 30px;
+    color: #34495E;
+}
+
+p {
+    font-size: 1.1em;
+    margin: 10px 0;
+    text-align: center;
+}
+
+/* Стили для списка заказов */
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    background-color: #fff;
+    margin: 10px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+li strong {
+    color: #34495E;
+}
+
+a {
+    color: #1c7ed6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Для блоков с принятыми заказами */
+ul li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+ul li strong {
+    width: 100%;
+}
+
+ul li a {
+    margin-top: 10px;
+}
+
+ul li .creator-info {
+    width: 100%;
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+ul li .creator-info a {
+    margin-left: 10px;
+}
+
+/* Для пустых списков (когда нет заказов) */
+ul li.no-orders {
+    text-align: center;
+    font-size: 1.2em;
+    color: #888;
+}
+
+/* Стили для мобильных устройств */
+@media(max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    h2 {
+        font-size: 1.3em;
+    }
+
+    ul li {
+        padding: 10px;
+    }
+
+    ul li strong {
+        font-size: 1em;
+    }
+
+    ul li .creator-info {
+        font-size: 0.9em;
+    }
+}

@@ -6,8 +6,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // Подключаемся к базе данных
-    $conn = new mysqli('localhost', 'poputka_kz', 'plAEQeJRt77b2Da1', 'poputka_kz');
+    // Подключаемся к базе данных InfinityFree
+    $conn = new mysqli('sql303.infinityfree.com', 'if0_40740361', '9r6mEbm5yS', 'if0_40740361_poputka24');
+    
+    // Устанавливаем кодировку
+    $conn->set_charset("utf8mb4");
+    
     if ($conn->connect_error) {
         die('Ошибка подключения: ' . $conn->connect_error);
     }
@@ -22,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($password, $user['password'])) {
         // Авторизация успешна, создаем сессию
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username']; // Добавляем имя пользователя в сессию
+        $_SESSION['username'] = $user['username'];
         header('Location: /index.php');
         exit();
     } else {
@@ -39,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Авторизация</title>
+    <title>Попутка 24 - Авторизация</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/login.css">
 </head>

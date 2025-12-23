@@ -1,6 +1,10 @@
 <?php
-// Подключаемся к базе данных
-$conn = new mysqli('localhost', 'poputka_kz', 'plAEQeJRt77b2Da1', 'poputka_kz');
+// Подключаемся к базе данных InfinityFree
+$conn = new mysqli('sql303.infinityfree.com', 'if0_40740361', '9r6mEbm5yS', 'if0_40740361_poputka24');
+
+// Устанавливаем кодировку
+$conn->set_charset("utf8mb4");
+
 if ($conn->connect_error) {
     die('Ошибка подключения: ' . $conn->connect_error);
 }
@@ -11,7 +15,7 @@ if (!isset($_SESSION['user_id'])) {
     die('Вы должны войти в систему для доступа к профилю.');
 }
 
-$user_id = $_SESSION['user_id']; // ID текущего пользователя
+$user_id = $_SESSION['user_id'];
 
 $sqlAccepted = "
     SELECT 
@@ -46,7 +50,7 @@ $conn->close();
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мой профиль</title>
+    <title>Попутка 24 - Мой профиль</title>
     <link rel="stylesheet" href="/css/profile.css">
 </head>
 <body>

@@ -7,12 +7,12 @@ session_start();
 
 // Если не авторизован, перенаправляем на страницу логина
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php"); // Редирект на страницу логина
+    header("Location: login.php");
     exit();
 }
 
 // Получаем ID пользователя из сессии
-$user_id = $_SESSION['user_id']; // Предполагаем, что ID пользователя хранится в сессии
+$user_id = $_SESSION['user_id'];
 
 // Проверяем, была ли отправлена форма
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $from_location = $_POST['from'] ?? null;
     $to_location = $_POST['to'] ?? null;
     $description = $_POST['description'] ?? null;
-    $role = $_POST['role'] ?? null; // Добавлено поле роли
+    $role = $_POST['role'] ?? null;
 
     // Проверяем, заполнены ли все обязательные поля
     if (!$type || !$region || !$from_location || !$to_location || !$description || !$role) {
@@ -37,14 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Выполняем запрос и обрабатываем результат
     if ($stmt->execute()) {
-        header("Location: orders.php"); // Перенаправляем на страницу успеха
+        header("Location: orders.php");
         exit();
     } else {
-        header("Location: error.php?message=" . urlencode($stmt->error)); // Перенаправляем на страницу ошибки
+        header("Location: error.php?message=" . urlencode($stmt->error));
         exit();
     }
 
-    $stmt->close(); // Закрываем запрос
+    $stmt->close();
 }
 ?>
 
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Создание заказа</title>
+    <title>Попутка 24 - Создание заказа</title>
     <link rel="stylesheet" href="/css/ordersCreate.css">
     <script>
         // Дополнительная проверка на стороне клиента
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!from || !to) {
                     alert('Поля "Откуда" и "Куда" обязательны для заполнения!');
-                    event.preventDefault(); // Предотвращаем отправку формы
+                    event.preventDefault();
                 }
             });
         });
@@ -103,9 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <option value="Павлодарская область">Павлодарская область</option>
                 <option value="Северо-Казахстанская область">Северо-Казахстанская область</option>
                 <option value="Туркестанская область">Туркестанская область</option>
-                <option value="город Алматы">город Алматы</option>
-                <option value="город Нур-Султан">город Астана</option>
-                <option value="город Шымкент">город Шымкент</option>
             </select>
             <br>
 

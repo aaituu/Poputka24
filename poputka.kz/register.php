@@ -3,11 +3,15 @@
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
     $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT); // Хэшируем пароль
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $phone = $_POST['phone'];
 
-    // Подключаемся к базе данных
-    $conn = new mysqli('localhost', 'poputka_kz', 'plAEQeJRt77b2Da1', 'poputka_kz');
+    // Подключаемся к базе данных InfinityFree
+    $conn = new mysqli('sql303.infinityfree.com', 'if0_40740361', '9r6mEbm5yS', 'if0_40740361_poputka24');
+    
+    // Устанавливаем кодировку
+    $conn->set_charset("utf8mb4");
+    
     if ($conn->connect_error) {
         die('Ошибка подключения: ' . $conn->connect_error);
     }
@@ -23,8 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Добавляем нового пользователя в базу данных
         $stmt = $conn->prepare("INSERT INTO users (username, email, password, phone) VALUES (?, ?, ?, ?)");
         $stmt->bind_param("ssss", $username, $email, $password, $phone);
-        $stmt->execute();
-        echo 'Регистрация прошла успешно';
+        if ($stmt->execute()) {
+            echo 'Регистрация прошла успешно! <a href="login.php">Войти</a>';
+        } else {
+            echo 'Ошибка регистрации: ' . $conn->error;
+        }
     }
 
     $stmt->close();
@@ -36,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Регистрация</title>
+    <title>Попутка 24 - Регистрация</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/register.css">
 </head>
@@ -53,11 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" id="password" name="password" required>
 
         <label for="phone">Телефон:</label>
-        <input type="text" name="phone" required> <!-- Поле для телефона -->
+        <input type="text" name="phone" required>
 
         <label>
             <input type="checkbox" required>
-            Я прочитал(а) и согласен(на) с <a href="/terms" target="_blank">Условиями оферты</a> и <a href="/privacy" target="_blank">Политикой конфиденциальности</a>.
+            Я прочитал(а) и согласен(на) с <a href="/terms.html" target="_blank">Условиями оферты</a> и <a href="/privacy.html" target="_blank">Политикой конфиденциальности</a>.
         </label><br><br>
 
         <button type="submit">Зарегистрироваться</button>

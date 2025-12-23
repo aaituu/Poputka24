@@ -18,17 +18,18 @@ if (isset($_POST['logout'])) {
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta name="google-site-verification" content="C5bhZvmbzgtvYVGv8tE6-ioDbijcasfaNDv6rUoknzs" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="keywords" content="Poputka.kz, попутка, полпутчик, poputki, сайт грузоперевозок, пассажирские перевозки, найти попутку">
-    <title>Poputka</title>
+    <meta name="keywords" content="Poputka.kz, попутка, попутчик, poputki, сайт грузоперевозок, пассажирские перевозки, найти попутку">
+    <title>Попутка 24 - Пассажирские и грузовые перевозки по Казахстану</title>
     <link rel="stylesheet" href="/css/style.css" />
-    <link rel="icon" href="/favicon.ico" type="image/ico">
-    <meta name="description" content="Попутные Пассажирские и Грузовые перевозки по Казахстану и ближнему зарубежью">
+    <link rel="icon" href="/favicon.ico" >
+    <meta name="description" content="Попутка 24 - Попутные Пассажирские и Грузовые перевозки по Казахстану и ближнему зарубежью">
   </head>
   <body>
     <header>
       <div class="logo">
-        <h1>Poputka</h1>
+        <h1>Попутка 24</h1>
       </div>
       <nav>
             <a href="/profile.php">Профиль</a>
@@ -48,11 +49,9 @@ if (isset($_POST['logout'])) {
           <a href="/register.php"><button>Регистрация</button></a>
         <?php endif; ?>
 
-        <h1>Добро пожаловать в Poputka!<?php
+        <h1>Добро пожаловать в Попутка 24!<?php
           if (isset($_SESSION['username'])) {
               echo " " . htmlspecialchars($_SESSION['username']);
-          } else {
-              echo "Привет, гость!";
           }
         ?></h1>
         <p>Пассажирские и грузовые перевозки</p>
@@ -63,12 +62,12 @@ if (isset($_POST['logout'])) {
 
     <section class="bottom">
       <h1>
-        У вас есть идеи для улучшения приложения?<br />
-        Или вам встретился недобросовестный пользователь?<br>
-        <a href="mailto:Poputka.kz@list.ru?subject=Тема письма&body=Текст письма">
-          Написать нам на почту Poputka.kz@list.ru
+        Ищем инвестора для дальнейшей реализации проекта<br />
+        <a href="mailto:Hosting_R@outlook.com?subject=Инвестиции в Попутка 24&body=Здравствуйте!">
+          Написать нам на почту Hosting_R@outlook.com
         </a>
       </h1>
-    </section>
+    </section>   
   </body>
 </html>
+

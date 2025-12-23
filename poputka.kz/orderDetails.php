@@ -1,6 +1,10 @@
 <?php
-// Подключаемся к базе данных
-$conn = new mysqli('localhost', 'poputka_kz', 'plAEQeJRt77b2Da1', 'poputka_kz');
+// Подключаемся к базе данных InfinityFree
+$conn = new mysqli('sql303.infinityfree.com', 'if0_40740361', '9r6mEbm5yS', 'if0_40740361_poputka24');
+
+// Устанавливаем кодировку
+$conn->set_charset("utf8mb4");
+
 if ($conn->connect_error) {
     die('Ошибка подключения: ' . $conn->connect_error);
 }
@@ -11,7 +15,7 @@ if (!isset($_SESSION['user_id'])) {
     die('Вы должны войти в систему, чтобы принять заказ.');
 }
 
-$user_id = $_SESSION['user_id']; // ID текущего пользователя
+$user_id = $_SESSION['user_id'];
 $order_id = $_GET['id'] ?? null;
 
 // Проверяем, был ли отправлен запрос на принятие заказа
@@ -68,7 +72,7 @@ $conn->close();
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Детали заказа</title>
+    <title>Попутка 24 - Детали заказа</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/css/orderDetail.css">
 </head>
@@ -80,18 +84,24 @@ $conn->close();
         <p><strong>Откуда:</strong> <?= htmlspecialchars($order['from_location']); ?></p>
         <p><strong>Куда:</strong> <?= htmlspecialchars($order['to_location']); ?></p>
         <p><strong>Описание:</strong> <?= htmlspecialchars($order['description']); ?></p>
-        <p><strong>Принято:</strong> <?= $order['accepted_by'] ? 'Да' : 'Нет'; ?></p>
+        <p><strong>Открыто:</strong> <?= $order['accepted_by'] ? 'Да' : 'Нет'; ?></p>
 
         <?php if (!$order['accepted_by']): ?>
             <form method="POST">
-                <button type="submit" name="accept_order">Принять заказ</button>
+                <button type="submit" name="accept_order">Открыть номер</button>
             </form>
         <?php else: ?>
-            <p>Заказ принят!</p>
-            <p><strong>Номер телефона создателя заказа:</strong> <?= htmlspecialchars($order['creator_phone'] ?? 'Нет данных'); ?></p>
+            <p>Номер открыт</p>
+            <p><strong>Номер телефона создателя заказа:</strong> 
+                <a href="tel:<?= htmlspecialchars($order['creator_phone'] ?? ''); ?>">
+                    <?= htmlspecialchars($order['creator_phone'] ?? 'Нет данных'); ?>
+                </a>
+            </p>
         <?php endif; ?>
 
-        <a href="/orders.php">Вернуться к списку заказов</a>
+        <div class="glav">
+            <a href="/orders.php">Вернуться к списку</a>
+        </div>
     <?php else: ?>
         <p>Заказ не найден.</p>
     <?php endif; ?>

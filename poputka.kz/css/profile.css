@@ -1,114 +1,263 @@
-/* Основные стили для страницы профиля */
-body {
-    font-family: Arial, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+* {
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: #333;
+    min-height: 100vh;
 }
 
 h1 {
     text-align: center;
-    font-size: 2em;
-    margin-top: 20px;
+    font-size: 2.5em;
+    margin: 30px 0;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 h2 {
-    font-size: 1.5em;
-    margin-top: 30px;
-    color: #34495E;
+    font-size: 1.8em;
+    margin: 40px 0 20px 0;
+    color: white;
+    text-align: center;
 }
 
 p {
-    font-size: 1.1em;
-    margin: 10px 0;
-    text-align: center;
-}
-
-/* Стили для списка заказов */
-ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-li {
-    background-color: #fff;
-    margin: 10px 0;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-li strong {
-    color: #34495E;
-}
-
-a {
-    color: #1c7ed6;
-    text-decoration: none;
-}
-
-a:hover {
-    text-decoration: underline;
-}
-
-/* Для блоков с принятыми заказами */
-ul li {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-ul li strong {
-    width: 100%;
-}
-
-ul li a {
-    margin-top: 10px;
-}
-
-ul li .creator-info {
-    width: 100%;
-    margin-top: 15px;
-    font-size: 0.9em;
-    color: #555;
-}
-
-ul li .creator-info a {
-    margin-left: 10px;
-}
-
-/* Для пустых списков (когда нет заказов) */
-ul li.no-orders {
-    text-align: center;
     font-size: 1.2em;
-    color: #888;
+    margin: 15px 0;
+    text-align: center;
+    color: white;
 }
 
-/* Стили для мобильных устройств */
+/* Карточки заказов */
+.order-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 20px auto;
+    max-width: 900px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.order-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+}
+
+.order-info {
+    margin-bottom: 20px;
+}
+
+.order-info p {
+    margin: 12px 0;
+    font-size: 17px;
+    color: #2c3e50;
+    text-align: left;
+    padding: 8px 0;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.order-info p:last-child {
+    border-bottom: none;
+}
+
+.order-info strong {
+    color: #34495e;
+    font-weight: 600;
+    display: inline-block;
+    min-width: 150px;
+}
+
+/* Кнопки действий */
+.order-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.order-actions button,
+.order-actions a {
+    flex: 1;
+    min-width: 150px;
+    max-width: 220px;
+    padding: 14px 25px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+    font-family: 'Montserrat', sans-serif;
+    display: inline-block;
+}
+
+.btn-edit {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #2980b9;
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.btn-delete {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c0392b;
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+/* Пустой список */
+.no-orders {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    margin: 40px auto;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.no-orders p {
+    color: #7f8c8d;
+    font-size: 20px;
+    margin-bottom: 30px;
+}
+
+/* Ссылка назад */
+.back-link {
+    display: inline-block;
+    margin: 20px auto;
+    padding: 14px 30px;
+    background-color: #27ae60;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.back-link:hover {
+    background-color: #229954;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+}
+
+/* Бейджи */
+.badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 15px;
+    font-size: 13px;
+    font-weight: bold;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.badge-truck {
+    background-color: #f39c12;
+    color: white;
+}
+
+.badge-car {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-status {
+    background-color: #27ae60;
+    color: white;
+}
+
+/* Адаптивность */
 @media(max-width: 768px) {
     body {
         padding: 10px;
     }
 
     h1 {
-        font-size: 1.8em;
+        font-size: 2em;
+        margin: 20px 0;
+    }
+
+    h2 {
+        font-size: 1.5em;
+        margin: 30px 0 15px 0;
+    }
+
+    .order-card {
+        padding: 18px;
+        margin: 15px 10px;
+    }
+
+    .order-info p {
+        font-size: 15px;
+        padding: 6px 0;
+    }
+
+    .order-info strong {
+        display: block;
+        margin-bottom: 5px;
+        min-width: auto;
+    }
+
+    .order-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .order-actions button,
+    .order-actions a {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .no-orders {
+        padding: 40px 15px;
+        margin: 20px 10px;
+    }
+}
+
+@media(max-width: 425px) {
+    h1 {
+        font-size: 1.6em;
     }
 
     h2 {
         font-size: 1.3em;
     }
 
-    ul li {
-        padding: 10px;
+    .order-card {
+        padding: 15px;
     }
 
-    ul li strong {
-        font-size: 1em;
+    .order-info p {
+        font-size: 14px;
     }
 
-    ul li .creator-info {
-        font-size: 0.9em;
+    .order-actions button,
+    .order-actions a {
+        padding: 12px 20px;
+        font-size: 14px;
     }
 }

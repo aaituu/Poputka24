@@ -65,22 +65,22 @@ $conn->close();
         }
         
         .btn-edit {
-            background-color: #3498db;
+            background-color: #34495e;
             color: white;
         }
         
         .btn-edit:hover {
-            background-color: #2980b9;
+            background-color: #2a3a4aff;
             transform: scale(1.05);
         }
         
         .btn-delete {
-            background-color: #e74c3c;
+            background-color: #853f38ff;
             color: white;
         }
         
         .btn-delete:hover {
-            background-color: #c0392b;
+            background-color: #6a0e04ff;
             transform: scale(1.05);
         }
         
@@ -116,17 +116,17 @@ $conn->close();
         }
         
         .badge-truck {
-            background-color: #f39c12;
+            background-color: #ac8341ff;
             color: white;
         }
         
         .badge-car {
-            background-color: #3498db;
+            background-color: #34495e;
             color: white;
         }
         
         .badge-status {
-            background-color: #27ae60;
+            background-color: #38905dff;
             color: white;
         }
     </style>
@@ -179,12 +179,12 @@ $conn->close();
                 
                 <div class="order-actions">
                     <a href="editOrder.php?id=<?= $order['id']; ?>" class="btn-edit">
-                        ✏️ Редактировать
+                        Редактировать
                     </a>
                     <form method="POST" action="deleteOrder.php" style="flex: 1; max-width: 200px;" onsubmit="return confirm('Вы уверены, что хотите удалить этот заказ?');">
                         <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
                         <button type="submit" class="btn-delete">
-                            🗑️ Удалить
+                            Удалить
                         </button>
                     </form>
                 </div>

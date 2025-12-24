@@ -32,11 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type = $_POST['type'] ?? null;
     $region = $_POST['region'] ?? null;
     $from_location = $_POST['from'] ?? null;
-    $from_lat = $_POST['from_lat'] ?? null;
-    $from_lng = $_POST['from_lng'] ?? null;
+    $from_lat = $_POST['from_lat'] ?? $order['from_lat'];
+    $from_lng = $_POST['from_lng'] ?? $order['from_lng'];
     $to_location = $_POST['to'] ?? null;
-    $to_lat = $_POST['to_lat'] ?? null;
-    $to_lng = $_POST['to_lng'] ?? null;
+    $to_lat = $_POST['to_lat'] ?? $order['to_lat'];
+    $to_lng = $_POST['to_lng'] ?? $order['to_lng'];
     $date = $_POST['date'] ?? null;
     $description = $_POST['description'] ?? null;
     $role = $_POST['role'] ?? null;
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cargo_type = ($type === 'Грузовой') ? ($_POST['cargo_type'] ?? null) : null;
 
     if (!$type || !$region || !$from_location || !$to_location || !$date || !$role) {
-        echo "<script>alert('Ошибка: заполните все обязательные поля.');</script>";
+        $error = "Ошибка: заполните все обязательные поля.";
     } else {
         $stmt = $conn->prepare("UPDATE orders SET type=?, region=?, from_location=?, from_lat=?, from_lng=?, 
                                 to_location=?, to_lat=?, to_lng=?, date=?, description=?, role=?, 
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: profile.php");
             exit();
         } else {
-            echo "<script>alert('Ошибка при обновлении заказа.');</script>";
+            $error = "Ошибка при обновлении заказа.";
         }
         $stmt->close();
     }
@@ -74,11 +74,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Попутка 24 - Редактирование заказа</title>
     <link rel="stylesheet" href="/css/ordersCreate.css">
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=YOUR_YANDEX_API_KEY&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .autocomplete-items div {
+            padding: 12px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #d4d4d4;
+            color: #2c3e50;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-items div:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .autocomplete-active {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        
+        .city-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .city-region {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+        
+        .autocomplete-active .city-region {
+            color: #ecf0f1;
+        }
+        
+        .error-message {
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .button-group button, .button-group a {
+            flex: 1;
+            max-width: 200px;
+        }
+        
+        button.cancel-btn {
+            background-color: #95a5a6;
+        }
+        
+        button.cancel-btn:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
 </head>
 <body>
     <main>
         <h1>Редактирование заказа</h1>
+        
+        <?php if (isset($error)): ?>
+            <div class="error-message"><?= $error ?></div>
+        <?php endif; ?>
 
         <form id="orderForm" action="editOrder.php?id=<?= $order_id ?>" method="POST">
             <label for="type">Тип перевозки:</label>
@@ -107,18 +194,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </select>
             <br>
 
-            <label>Откуда:</label>
-            <input type="text" name="from" id="from" value="<?= htmlspecialchars($order['from_location']) ?>" required readonly>
-            <input type="hidden" name="from_lat" id="from_lat" value="<?= $order['from_lat'] ?>">
-            <input type="hidden" name="from_lng" id="from_lng" value="<?= $order['from_lng'] ?>">
-            <button type="button" onclick="openMap('from')">Выбрать на карте</button>
+            <label for="from">Откуда:</label>
+            <div class="autocomplete-container">
+                <input type="text" name="from" id="from" value="<?= htmlspecialchars($order['from_location']) ?>" required autocomplete="off">
+                <input type="hidden" name="from_lat" id="from_lat" value="<?= $order['from_lat'] ?>">
+                <input type="hidden" name="from_lng" id="from_lng" value="<?= $order['from_lng'] ?>">
+            </div>
             <br>
 
-            <label>Куда:</label>
-            <input type="text" name="to" id="to" value="<?= htmlspecialchars($order['to_location']) ?>" required readonly>
-            <input type="hidden" name="to_lat" id="to_lat" value="<?= $order['to_lat'] ?>">
-            <input type="hidden" name="to_lng" id="to_lng" value="<?= $order['to_lng'] ?>">
-            <button type="button" onclick="openMap('to')">Выбрать на карте</button>
+            <label for="to">Куда:</label>
+            <div class="autocomplete-container">
+                <input type="text" name="to" id="to" value="<?= htmlspecialchars($order['to_location']) ?>" required autocomplete="off">
+                <input type="hidden" name="to_lat" id="to_lat" value="<?= $order['to_lat'] ?>">
+                <input type="hidden" name="to_lng" id="to_lng" value="<?= $order['to_lng'] ?>">
+            </div>
             <br>
 
             <label for="date">Дата:</label>
@@ -156,21 +245,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </select>
             <br>
 
-            <button type="submit" class="CreateBtn">Сохранить изменения</button>
-            <a href="profile.php"><button type="button">Отмена</button></a>
-        </form>
-
-        <div id="mapModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
-            <div style="position: relative; width: 90%; height: 90%; margin: 2% auto; background: white; border-radius: 10px;">
-                <button onclick="closeMap()" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">Закрыть</button>
-                <div id="map" style="width: 100%; height: 100%;"></div>
+            <div class="button-group">
+                <button type="submit" class="CreateBtn">💾 Сохранить</button>
+                <a href="profile.php"><button type="button" class="cancel-btn">❌ Отмена</button></a>
             </div>
-        </div>
+        </form>
     </main>
 
     <script>
-        let currentField = null;
-        let myMap = null;
+        const cities = [
+            {name: "Астана", region: "г. Астана", lat: 51.1694, lng: 71.4491},
+            {name: "Алматы", region: "г. Алматы", lat: 43.2220, lng: 76.8512},
+            {name: "Шымкент", region: "г. Шымкент", lat: 42.3000, lng: 69.5900},
+            {name: "Кокшетау", region: "Акмолинская область", lat: 53.2872, lng: 69.3756},
+            {name: "Актобе", region: "Актюбинская область", lat: 50.2839, lng: 57.1670},
+            {name: "Талдыкорган", region: "Алматинская область", lat: 45.0150, lng: 78.3730},
+            {name: "Атырау", region: "Атырауская область", lat: 47.1164, lng: 51.8830},
+            {name: "Усть-Каменогорск", region: "Восточно-Казахстанская область", lat: 49.9787, lng: 82.6147},
+            {name: "Семей", region: "Восточно-Казахстанская область", lat: 50.4111, lng: 80.2275},
+            {name: "Тараз", region: "Жамбылская область", lat: 42.9000, lng: 71.3667},
+            {name: "Уральск", region: "Западно-Казахстанская область", lat: 51.2167, lng: 51.3667},
+            {name: "Караганда", region: "Карагандинская область", lat: 49.8047, lng: 73.1094},
+            {name: "Костанай", region: "Костанайская область", lat: 53.2142, lng: 63.6246},
+            {name: "Кызылорда", region: "Кызылординская область", lat: 44.8528, lng: 65.5094},
+            {name: "Актау", region: "Мангистауская область", lat: 43.6500, lng: 51.2000},
+            {name: "Павлодар", region: "Павлодарская область", lat: 52.2873, lng: 76.9674},
+            {name: "Петропавловск", region: "Северо-Казахстанская область", lat: 54.8667, lng: 69.1500},
+            {name: "Туркестан", region: "Туркестанская область", lat: 43.3000, lng: 68.2667}
+        ];
 
         function toggleFormFields() {
             const type = document.getElementById('type').value;
@@ -192,43 +294,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        function openMap(field) {
-            currentField = field;
-            document.getElementById('mapModal').style.display = 'block';
+        function initAutocomplete(inputId, latId, lngId) {
+            const input = document.getElementById(inputId);
+            let currentFocus = -1;
             
-            if (!myMap) {
-                ymaps.ready(initMap);
-            }
-        }
-
-        function closeMap() {
-            document.getElementById('mapModal').style.display = 'none';
-        }
-
-        function initMap() {
-            myMap = new ymaps.Map("map", {
-                center: [51.1694, 71.4491],
-                zoom: 6,
-                controls: ['zoomControl', 'searchControl']
-            });
-
-            myMap.events.add('click', function (e) {
-                const coords = e.get('coords');
+            input.addEventListener('input', function() {
+                const value = this.value;
+                closeAllLists();
                 
-                ymaps.geocode(coords).then(function (res) {
-                    const firstGeoObject = res.geoObjects.get(0);
-                    const address = firstGeoObject.getAddressLine();
+                if (!value) return false;
+                
+                currentFocus = -1;
+                
+                const container = this.parentNode;
+                const listDiv = document.createElement('div');
+                listDiv.setAttribute('id', inputId + '-autocomplete-list');
+                listDiv.setAttribute('class', 'autocomplete-items');
+                container.appendChild(listDiv);
+                
+                const filtered = cities.filter(city => 
+                    city.name.toLowerCase().includes(value.toLowerCase()) ||
+                    city.region.toLowerCase().includes(value.toLowerCase())
+                ).slice(0, 10);
+                
+                filtered.forEach(city => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.innerHTML = `
+                        <div class="city-name">${city.name}</div>
+                        <div class="city-region">${city.region}</div>
+                    `;
                     
-                    document.getElementById(currentField).value = address;
-                    document.getElementById(currentField + '_lat').value = coords[0];
-                    document.getElementById(currentField + '_lng').value = coords[1];
+                    itemDiv.addEventListener('click', function() {
+                        input.value = `${city.name}, ${city.region}`;
+                        document.getElementById(latId).value = city.lat;
+                        document.getElementById(lngId).value = city.lng;
+                        closeAllLists();
+                    });
                     
-                    closeMap();
+                    listDiv.appendChild(itemDiv);
                 });
             });
+            
+            input.addEventListener('keydown', function(e) {
+                let list = document.getElementById(inputId + '-autocomplete-list');
+                if (list) list = list.getElementsByTagName('div');
+                
+                if (e.keyCode === 40) {
+                    currentFocus++;
+                    addActive(list);
+                    e.preventDefault();
+                } else if (e.keyCode === 38) {
+                    currentFocus--;
+                    addActive(list);
+                    e.preventDefault();
+                } else if (e.keyCode === 13) {
+                    e.preventDefault();
+                    if (currentFocus > -1 && list) {
+                        list[currentFocus].click();
+                    }
+                }
+            });
+            
+            function addActive(list) {
+                if (!list) return false;
+                removeActive(list);
+                if (currentFocus >= list.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = list.length - 1;
+                list[currentFocus].classList.add('autocomplete-active');
+            }
+            
+            function removeActive(list) {
+                for (let i = 0; i < list.length; i++) {
+                    list[i].classList.remove('autocomplete-active');
+                }
+            }
+            
+            function closeAllLists(el) {
+                const items = document.getElementsByClassName('autocomplete-items');
+                for (let i = 0; i < items.length; i++) {
+                    if (el !== items[i] && el !== input) {
+                        items[i].parentNode.removeChild(items[i]);
+                    }
+                }
+            }
+            
+            document.addEventListener('click', function(e) {
+                closeAllLists(e.target);
+            });
         }
 
-        // Инициализация при загрузке
+        initAutocomplete('from', 'from_lat', 'from_lng');
+        initAutocomplete('to', 'to_lat', 'to_lng');
+        
         window.onload = function() {
             toggleFormFields();
         };

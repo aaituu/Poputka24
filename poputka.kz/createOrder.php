@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cargo_type = ($type === 'Грузовой') ? ($_POST['cargo_type'] ?? null) : null;
 
     if (!$type || !$region || !$from_location || !$to_location || !$date || !$role) {
-        echo "<script>alert('Ошибка: заполните все обязательные поля.');</script>";
+        $error = "Ошибка: заполните все обязательные поля.";
     } else {
         $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, from_lat, from_lng, 
                                 to_location, to_lat, to_lng, date, description, role, passengers, tonnage, volume, cargo_type) 
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: orders.php");
             exit();
         } else {
-            echo "<script>alert('Ошибка при создании заказа.');</script>";
+            $error = "Ошибка при создании заказа.";
         }
         $stmt->close();
     }
@@ -54,62 +54,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Попутка 24 - Создание заказа</title>
     <link rel="stylesheet" href="/css/ordersCreate.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        #map { 
-            height: 100%; 
-            width: 100%;
-            border-radius: 10px;
-        }
-        #mapModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-        }
-        #mapModal .modal-content {
+        .autocomplete-container {
             position: relative;
-            width: 90%;
-            height: 90%;
-            margin: 2% auto;
-            background: white;
-            border-radius: 10px;
-            padding: 10px;
+            width: 100%;
         }
-        #mapModal .close-btn {
+        
+        .autocomplete-items {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1001;
-            padding: 10px 20px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            border: 1px solid #d4d4d4;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .autocomplete-items div {
+            padding: 12px;
             cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #d4d4d4;
+            color: #2c3e50;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-items div:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .autocomplete-active {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        
+        .city-name {
+            font-weight: 600;
             font-size: 16px;
         }
-        #mapModal .close-btn:hover {
-            background: #c0392b;
+        
+        .city-region {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 2px;
         }
-        .map-select-btn {
-            background-color: #27ae60;
-            margin-top: 5px;
-            width: 100%;
+        
+        .autocomplete-active .city-region {
+            color: #ecf0f1;
         }
-        .map-select-btn:hover {
-            background-color: #229954;
+        
+        input[type="text"]:focus {
+            border: 2px solid #3498db;
+            outline: none;
+        }
+        
+        .error-message {
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 600px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <main>
         <h1>Создание заказа</h1>
+        
+        <?php if (isset($error)): ?>
+            <div class="error-message"><?= $error ?></div>
+        <?php endif; ?>
 
         <form id="orderForm" action="createOrder.php" method="POST">
             <label for="type">Тип перевозки:</label>
@@ -143,18 +164,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </select>
             <br>
 
-            <label>Откуда:</label>
-            <input type="text" name="from" id="from" required readonly placeholder="Нажмите кнопку ниже">
-            <input type="hidden" name="from_lat" id="from_lat">
-            <input type="hidden" name="from_lng" id="from_lng">
-            <button type="button" class="map-select-btn" onclick="openMap('from')">🗺️ Выбрать на карте</button>
+            <label for="from">Откуда:</label>
+            <div class="autocomplete-container">
+                <input type="text" name="from" id="from" required autocomplete="off" placeholder="Начните вводить название города...">
+                <input type="hidden" name="from_lat" id="from_lat">
+                <input type="hidden" name="from_lng" id="from_lng">
+            </div>
             <br>
 
-            <label>Куда:</label>
-            <input type="text" name="to" id="to" required readonly placeholder="Нажмите кнопку ниже">
-            <input type="hidden" name="to_lat" id="to_lat">
-            <input type="hidden" name="to_lng" id="to_lng">
-            <button type="button" class="map-select-btn" onclick="openMap('to')">🗺️ Выбрать на карте</button>
+            <label for="to">Куда:</label>
+            <div class="autocomplete-container">
+                <input type="text" name="to" id="to" required autocomplete="off" placeholder="Начните вводить название города...">
+                <input type="hidden" name="to_lat" id="to_lat">
+                <input type="hidden" name="to_lng" id="to_lng">
+            </div>
             <br>
 
             <label for="date">Дата:</label>
@@ -182,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <label for="description">Описание:</label>
-            <textarea name="description" required></textarea>
+            <textarea name="description" required placeholder="Опишите детали поездки..."></textarea>
             <br>
 
             <label for="role">Роль:</label>
@@ -193,20 +216,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <br>
 
             <button type="submit" class="CreateBtn">Создать заказ</button>
+            <a href="index.php"><button type="button">Отмена</button></a>
         </form>
-
-        <div id="mapModal">
-            <div class="modal-content">
-                <button class="close-btn" onclick="closeMap()">✖ Закрыть</button>
-                <div id="map"></div>
-            </div>
-        </div>
     </main>
 
     <script>
-        let currentField = null;
-        let myMap = null;
-        let marker = null;
+        // База городов Казахстана
+    
 
         function toggleFormFields() {
             const type = document.getElementById('type').value;
@@ -231,62 +247,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        function openMap(field) {
-            currentField = field;
-            document.getElementById('mapModal').style.display = 'block';
+        function initAutocomplete(inputId, latId, lngId) {
+            const input = document.getElementById(inputId);
+            let currentFocus = -1;
             
-            if (!myMap) {
-                setTimeout(initMap, 100);
-            }
-        }
-
-        function closeMap() {
-            document.getElementById('mapModal').style.display = 'none';
-        }
-
-        function initMap() {
-            myMap = L.map('map').setView([48.0196, 66.9237], 6); // Центр Казахстана
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(myMap);
-
-            myMap.on('click', function(e) {
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
+            input.addEventListener('input', function() {
+                const value = this.value;
+                closeAllLists();
                 
-                // Удаляем предыдущий маркер
-                if (marker) {
-                    myMap.removeLayer(marker);
-                }
+                if (!value) return false;
                 
-                // Добавляем новый маркер
-                marker = L.marker([lat, lng]).addTo(myMap);
+                currentFocus = -1;
                 
-                // Получаем адрес через Nominatim (OpenStreetMap)
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ru`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        
-                        document.getElementById(currentField).value = address;
-                        document.getElementById(currentField + '_lat').value = lat;
-                        document.getElementById(currentField + '_lng').value = lng;
-                        
-                        marker.bindPopup(address).openPopup();
-                        
-                        setTimeout(closeMap, 2000);
-                    })
-                    .catch(error => {
-                        const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        document.getElementById(currentField).value = coords;
-                        document.getElementById(currentField + '_lat').value = lat;
-                        document.getElementById(currentField + '_lng').value = lng;
-                        
-                        setTimeout(closeMap, 1000);
+                const container = this.parentNode;
+                const listDiv = document.createElement('div');
+                listDiv.setAttribute('id', inputId + '-autocomplete-list');
+                listDiv.setAttribute('class', 'autocomplete-items');
+                container.appendChild(listDiv);
+                
+                const filtered = cities.filter(city => 
+                    city.name.toLowerCase().includes(value.toLowerCase()) ||
+                    city.region.toLowerCase().includes(value.toLowerCase())
+                ).slice(0, 10);
+                
+                filtered.forEach(city => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.innerHTML = `
+                        <div class="city-name">${city.name}</div>
+                        <div class="city-region">${city.region}</div>
+                    `;
+                    
+                    itemDiv.addEventListener('click', function() {
+                        input.value = `${city.name}, ${city.region}`;
+                        document.getElementById(latId).value = city.lat;
+                        document.getElementById(lngId).value = city.lng;
+                        closeAllLists();
                     });
+                    
+                    listDiv.appendChild(itemDiv);
+                });
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                let list = document.getElementById(inputId + '-autocomplete-list');
+                if (list) list = list.getElementsByTagName('div');
+                
+                if (e.keyCode === 40) { // DOWN
+                    currentFocus++;
+                    addActive(list);
+                    e.preventDefault();
+                } else if (e.keyCode === 38) { // UP
+                    currentFocus--;
+                    addActive(list);
+                    e.preventDefault();
+                } else if (e.keyCode === 13) { // ENTER
+                    e.preventDefault();
+                    if (currentFocus > -1 && list) {
+                        list[currentFocus].click();
+                    }
+                }
+            });
+            
+            function addActive(list) {
+                if (!list) return false;
+                removeActive(list);
+                if (currentFocus >= list.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = list.length - 1;
+                list[currentFocus].classList.add('autocomplete-active');
+            }
+            
+            function removeActive(list) {
+                for (let i = 0; i < list.length; i++) {
+                    list[i].classList.remove('autocomplete-active');
+                }
+            }
+            
+            function closeAllLists(el) {
+                const items = document.getElementsByClassName('autocomplete-items');
+                for (let i = 0; i < items.length; i++) {
+                    if (el !== items[i] && el !== input) {
+                        items[i].parentNode.removeChild(items[i]);
+                    }
+                }
+            }
+            
+            document.addEventListener('click', function(e) {
+                closeAllLists(e.target);
             });
         }
+    fetch('/cities.json') // ← путь поменяй, если файл лежит в другом месте
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Ошибка загрузки cities.json');
+        }
+        return response.json();
+    })
+    .then(data => {
+        cities = data;
+        console.log('Города загружены:', cities.length);
+        
+        // Инициализация после загрузки
+        initAutocomplete('from', 'from_lat', 'from_lng');
+        initAutocomplete('to', 'to_lat', 'to_lng');
+    })
+    .catch(error => {
+        console.error(error);
+    });
+
+  
     </script>
 </body>
 </html>

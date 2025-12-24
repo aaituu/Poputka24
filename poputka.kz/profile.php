@@ -148,9 +148,7 @@ $conn->close();
                         <span class="badge <?= $order['type'] === 'Грузовой' ? 'badge-truck' : 'badge-car' ?>">
                             <?= $order['type'] ?>
                         </span>
-                        <?php if ($order['accepted_by']): ?>
-                            <span class="badge badge-status">Принят</span>
-                        <?php endif; ?>
+                        
                     </p>
                     <p><strong>Область:</strong> <?= htmlspecialchars($order['region']); ?></p>
                     <p><strong>Откуда:</strong> <?= htmlspecialchars($order['from_location']); ?></p>

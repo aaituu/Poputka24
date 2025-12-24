@@ -10,34 +10,20 @@ if ($user_id === null) {
 }
 
 // Фильтрация
-$type_filter = $_GET['type'] ?? '';
-$region_filter = $_GET['region'] ?? '';
+$location_filter = $_GET['location'] ?? '';
 $role_filter = $_GET['role'] ?? '';
-$from_filter = $_GET['from_filter'] ?? '';
-$to_filter = $_GET['to_filter'] ?? '';
 
 $sql = "SELECT orders.*, users.username, users.phone FROM orders 
         LEFT JOIN users ON orders.user_id = users.id 
         WHERE 1=1";
 
-if ($type_filter) {
-    $sql .= " AND orders.type = '" . $conn->real_escape_string($type_filter) . "'";
-}
-
-if ($region_filter) {
-    $sql .= " AND orders.region = '" . $conn->real_escape_string($region_filter) . "'";
+if ($location_filter) {
+    $escaped_location = $conn->real_escape_string($location_filter);
+    $sql .= " AND orders.from_location LIKE '%" . $escaped_location . "%' ";
 }
 
 if ($role_filter) {
     $sql .= " AND orders.role = '" . $conn->real_escape_string($role_filter) . "'";
-}
-
-if ($from_filter) {
-    $sql .= " AND orders.from_location LIKE '%" . $conn->real_escape_string($from_filter) . "%'";
-}
-
-if ($to_filter) {
-    $sql .= " AND orders.to_location LIKE '%" . $conn->real_escape_string($to_filter) . "%'";
 }
 
 $sql .= " ORDER BY orders.created_at DESC";
@@ -48,80 +34,231 @@ $result = $conn->query($sql);
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Попутка 24 - Список заказов</title>
-    <link rel="stylesheet" href="/css/orders.css">
     <style>
-        body {
-            background-color: #2C3E50;
-            padding: 0;
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
         }
         
         .top-nav {
             background: #34495e;
             padding: 15px 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             position: sticky;
             top: 0;
             z-index: 100;
         }
         
-        .nav-left {
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
+            justify-content: space-between;
+            align-items: center;
             gap: 15px;
         }
         
         .nav-button {
-            display: inline-block;
             padding: 10px 20px;
             background-color: #425b74;
             color: white;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14px;
+            white-space: nowrap;
         }
         
         .nav-button:hover {
-            background-color: #2f435aff;
+            background-color: #2f435a;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         
-        .nav-button.secondary {
-            background-color: #425b74;
-        }
-        
-        .nav-button.secondary:hover {
-            background-color: #2f435aff;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
         
         h1 {
             color: white;
             text-align: center;
             margin: 30px 0;
-            font-size: 2.2em;
+            font-size: 2em;
+        }
+        
+        .filter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .filter-card h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.3em;
+        }
+        
+        .filter-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+            font-size: 14px;
+        }
+        
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Montserrat', sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .autocomplete-items div {
+            padding: 12px 15px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #f0f0f0;
+            color: #2c3e50;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-items div:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .autocomplete-active {
+            background-color: #3498db !important;
+            color: white !important;
+        }
+        
+        .city-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .city-region {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 3px;
+        }
+        
+        .autocomplete-active .city-region {
+            color: #ecf0f1;
+        }
+        
+        .filter-buttons {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn-primary {
+            flex: 1;
+            padding: 12px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #229954;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            background-color: #95a5a6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
         }
         
         .order-card {
             background: white;
             border-radius: 12px;
-            padding: 20px;
-            margin: 15px auto;
-            max-width: 900px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
         .order-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
         }
         
         .order-header {
@@ -129,49 +266,88 @@ $result = $conn->query($sql);
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             border-bottom: 2px solid #ecf0f1;
-        }
-        
-        .order-info p {
-            margin: 8px 0;
-            font-size: 16px;
-            color: #2c3e50;
         }
         
         .badge {
             display: inline-block;
-            padding: 5px 12px;
-            border-radius: 15px;
+            padding: 6px 14px;
+            border-radius: 20px;
             font-size: 13px;
-            font-weight: bold;
+            font-weight: 700;
             margin-left: 10px;
         }
         
-        .badge-truck {
-            background-color: #ac8341ff;
+        .badge-driver-car {
+            background-color: #3498db;
             color: white;
         }
         
-        .badge-car {
-            background-color: #34495e;
+        .badge-driver-truck {
+            background-color: #e67e22;
             color: white;
+        }
+        
+        .badge-passenger {
+            background-color: #9b59b6;
+            color: white;
+        }
+        
+        .badge-cargo {
+            background-color: #16a085;
+            color: white;
+        }
+        
+        .order-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #34495e;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .order-description {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .order-description .info-label {
+            margin-bottom: 8px;
         }
         
         .order-actions {
             display: flex;
             gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
+            margin-top: 20px;
             flex-wrap: wrap;
         }
         
-        .order-actions button, .order-actions a {
+        .order-actions button,
+        .order-actions a {
             flex: 1;
             min-width: 140px;
-            max-width: 180px;
-            padding: 10px 18px;
-            font-size: 15px;
+            padding: 12px 20px;
+            font-size: 14px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -183,250 +359,321 @@ $result = $conn->query($sql);
         }
         
         .btn-view {
-            background-color: #2c7149ff;
+            background-color: #27ae60;
         }
         
         .btn-view:hover {
-            background-color: rgba(20, 77, 44, 1)ff;
+            background-color: #229954;
             transform: scale(1.05);
         }
         
         .btn-edit {
-            background-color: #34495e;
+            background-color: #3498db;
         }
         
         .btn-edit:hover {
-            background-color: #2a3a4aff;
+            background-color: #2980b9;
             transform: scale(1.05);
         }
         
         .btn-delete {
-            background-color: #853f38ff;
+            background-color: #e74c3c;
         }
         
         .btn-delete:hover {
-            background-color: #6a0e04ff;
+            background-color: #c0392b;
             transform: scale(1.05);
-        }
-        
-        .filter-section {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px auto;
-            max-width: 900px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .filter-section h3 {
-            margin-top: 0;
-            color: #2c3e50;
-            font-size: 1.3em;
-        }
-        
-        .filter-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        
-        .filter-form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #34495e;
-        }
-        
-        .filter-form input, .filter-form select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 15px;
-        }
-        
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
         }
         
         .no-results {
             text-align: center;
             color: white;
-            font-size: 20px;
+            font-size: 18px;
             margin: 60px 0;
             padding: 40px;
             background: rgba(255,255,255,0.1);
             border-radius: 12px;
-            max-width: 600px;
-            margin: 60px auto;
         }
         
         @media (max-width: 768px) {
-            .filter-form {
-                grid-template-columns: 1fr;
-            }
-            
-            .order-actions {
+            .nav-content {
                 flex-direction: column;
-            }
-            
-            .order-actions button, .order-actions a {
-                max-width: 100%;
-            }
-            
-            .nav-left {
-                flex-direction: column;
-                gap: 10px;
-                width: 100%;
             }
             
             .nav-button {
                 width: 100%;
                 text-align: center;
             }
+            
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .order-actions {
+                flex-direction: column;
+            }
+            
+            .order-actions button,
+            .order-actions a {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="top-nav">
-        <div class="nav-left">
-            <a href="index.php" class="nav-button"> Главная</a>
-            <a href="createOrder.php" class="nav-button secondary"> Создать заказ</a>
+        <div class="nav-content">
+            <a href="index.php" class="nav-button">🏠 Главная</a>
+            <a href="createOrder.php" class="nav-button">➕ Создать заказ</a>
+            <a href="profile.php" class="nav-button">👤 Профиль</a>
         </div>
     </div>
 
-    <h1>Список заказов</h1>
+    <div class="container">
+        <h1>Список заказов</h1>
 
-    <div class="filter-section">
-        <h3>🔍 Фильтры поиска</h3>
-        <form method="GET" action="">
-            <div class="filter-form">
-                <div>
-                    <label for="type">Тип:</label>
-                    <select name="type" id="type">
-                        <option value="">Все</option>
-                        <option value="Грузовой" <?= $type_filter === 'Грузовой' ? 'selected' : '' ?>>Грузовой</option>
-                        <option value="Легковой" <?= $type_filter === 'Легковой' ? 'selected' : '' ?>>Легковой</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="region">Область:</label>
-                    <select name="region" id="region">
-                        <option value="">Все</option>
-                        <?php
-                        $regions = [
-                            "Акмолинская область", "Улытауская область", "Абайская область", "Жетысуйская область",
-                            "Актюбинская область", "Алматинская область", "Атырауская область", 
-                            "Восточно-Казахстанская область", "Жамбылская область", "Западно-Казахстанская область",
-                            "Карагандинская область", "Костанайская область", "Кызылординская область",
-                            "Мангистауская область", "Павлодарская область", "Северо-Казахстанская область",
-                            "Туркестанская область"
-                        ];
-                        foreach ($regions as $region) {
-                            $selected = ($region_filter === $region) ? 'selected' : '';
-                            echo "<option value='$region' $selected>$region</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="role">Кого ищете?:</label>
-                    <select name="role" id="role">
-                        <option value="">Все</option>
-                        <option value="Попутчик" <?= $role_filter === 'Попутчик' ? 'selected' : '' ?>>Попутчик</option>
-                        <option value="Водитель" <?= $role_filter === 'Водитель' ? 'selected' : '' ?>>Водитель</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label for="from_filter">Откуда:</label>
-                    <input type="text" name="from_filter" id="from_filter" value="<?= htmlspecialchars($from_filter) ?>" placeholder="Город отправления">
-                </div>
-                
-                <div>
-                    <label for="to_filter">Куда:</label>
-                    <input type="text" name="to_filter" id="to_filter" value="<?= htmlspecialchars($to_filter) ?>" placeholder="Город назначения">
-                </div>
-            </div>
-
-            <div class="filter-buttons">
-                <button type="submit" class="nav-button secondary" style="flex: 1;">🔍 Применить фильтр</button>
-                <a href="orders.php" class="nav-button" style="flex: 1; display: inline-block;">🔄 Сбросить</a>
-            </div>
-        </form>
-    </div>
-
-    <?php if ($result->num_rows > 0): ?>
-        <?php while ($order = $result->fetch_assoc()): ?>
-            <div class="order-card">
-                <div class="order-header">
-                    <div>
-                        <strong><?= htmlspecialchars($order['type']); ?></strong>
-                        <span class="badge <?= $order['type'] === 'Грузовой' ? 'badge-truck' : 'badge-car' ?>">
-                            <?= $order['type'] ?>
-                        </span>
+        <div class="filter-card">
+            <h3>🔍 Поиск заказов</h3>
+            <form method="GET" action="">
+                <div class="filter-form">
+                    <div class="form-group">
+                        <label for="location">Населённый пункт:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" name="location" id="location" value="<?= htmlspecialchars($location_filter) ?>" autocomplete="off" placeholder="Начните вводить название...">
+                        </div>
                     </div>
-                    <div>
-                        <strong>Создатель:</strong> <?= htmlspecialchars($order['username']); ?>
+
+                    <div class="form-group">
+                        <label for="role">Роль:</label>
+                        <select name="role" id="role">
+                            <option value="">Все</option>
+                            <option value="Водитель легкового" <?= $role_filter === 'Водитель легкового' ? 'selected' : '' ?>>Водитель легкового</option>
+                            <option value="Водитель грузового" <?= $role_filter === 'Водитель грузового' ? 'selected' : '' ?>>Водитель грузового</option>
+                            <option value="Попутчик" <?= $role_filter === 'Попутчик' ? 'selected' : '' ?>>Попутчик</option>
+                            <option value="Попутный груз" <?= $role_filter === 'Попутный груз' ? 'selected' : '' ?>>Попутный груз</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-buttons">
+                        <button type="submit" class="btn-primary">🔍 Найти</button>
+                        <a href="orders.php" class="btn-secondary">🔄 Сбросить</a>
                     </div>
                 </div>
-                
-                <div class="order-info">
-                    <p><strong>🏛️ Область:</strong> <?= htmlspecialchars($order['region']); ?></p>
-                    <p><strong>📍 Откуда:</strong> <?= htmlspecialchars($order['from_location']); ?></p>
-                    <p><strong>📍 Куда:</strong> <?= htmlspecialchars($order['to_location']); ?></p>
-                    <p><strong>📅 Дата:</strong> <?= date('d.m.Y', strtotime($order['date'])); ?></p>
-                    <p><strong>👤 Роль:</strong> <?= htmlspecialchars($order['role']); ?></p>
+            </form>
+        </div>
+
+        <?php if ($result->num_rows > 0): ?>
+            <?php while ($order = $result->fetch_assoc()): 
+                $badgeClass = '';
+                switch($order['role']) {
+                    case 'Водитель легкового':
+                        $badgeClass = 'badge-driver-car';
+                        break;
+                    case 'Водитель грузового':
+                        $badgeClass = 'badge-driver-truck';
+                        break;
+                    case 'Попутчик':
+                        $badgeClass = 'badge-passenger';
+                        break;
+                    case 'Попутный груз':
+                        $badgeClass = 'badge-cargo';
+                        break;
+                }
+            ?>
+                <div class="order-card">
+                    <div class="order-header">
+                        <div>
+                            <span class="badge <?= $badgeClass ?>">
+                                <?= htmlspecialchars($order['role']) ?>
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Создатель:</span>
+                            <span class="info-value"><?= htmlspecialchars($order['username']) ?></span>
+                        </div>
+                    </div>
                     
-                    <?php if ($order['type'] === 'Легковой' && $order['passengers']): ?>
-                        <p><strong>👥 Пассажиров:</strong> <?= $order['passengers']; ?></p>
-                    <?php endif; ?>
-                    
-                    <?php if ($order['type'] === 'Грузовой'): ?>
+                    <div class="order-info">
+                        <div class="info-item">
+                            <span class="info-label">📍 Откуда:</span>
+                            <span class="info-value"><?= htmlspecialchars($order['from_location']) ?></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">📍 Куда:</span>
+                            <span class="info-value"><?= htmlspecialchars($order['to_location']) ?></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">📅 Дата:</span>
+                            <span class="info-value"><?= date('d.m.Y', strtotime($order['date'])) ?></span>
+                        </div>
+                        
+                        <?php if ($order['passengers']): ?>
+                            <div class="info-item">
+                                <span class="info-label">👥 Мест:</span>
+                                <span class="info-value"><?= $order['passengers'] ?></span>
+                            </div>
+                        <?php endif; ?>
+                        
                         <?php if ($order['tonnage']): ?>
-                            <p><strong>⚖️ Тоннаж:</strong> <?= $order['tonnage']; ?> тонн</p>
+                            <div class="info-item">
+                                <span class="info-label">⚖️ Тоннаж:</span>
+                                <span class="info-value"><?= $order['tonnage'] ?> т</span>
+                            </div>
                         <?php endif; ?>
+                        
                         <?php if ($order['volume']): ?>
-                            <p><strong>📦 Объём:</strong> <?= $order['volume']; ?> м³</p>
+                            <div class="info-item">
+                                <span class="info-label">📦 Объём:</span>
+                                <span class="info-value"><?= $order['volume'] ?> м³</span>
+                            </div>
                         <?php endif; ?>
-                        <?php if ($order['cargo_type']): ?>
-                            <p><strong>📋 Тип груза:</strong> <?= htmlspecialchars($order['cargo_type']); ?></p>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                    </div>
                     
-                    <p><strong> Описание:</strong> <?= htmlspecialchars($order['description']); ?></p>
-                </div>
-                
-                <div class="order-actions">
-                    <a href="orderDetails.php?id=<?= $order['id']; ?>" class="btn-view">
-                        Посмотреть
-                    </a>
+                    <div class="order-description">
+                        <div class="info-label">📝 Описание:</div>
+                        <div class="info-value"><?= htmlspecialchars($order['description']) ?></div>
+                    </div>
                     
-                    <?php if ($order['user_id'] == $user_id): ?>
-                        <a href="editOrder.php?id=<?= $order['id']; ?>" class="btn-edit">
-                            Редактировать
+                    <div class="order-actions">
+                        <a href="orderDetails.php?id=<?= $order['id'] ?>" class="btn-view">
+                            👁️ Посмотреть
                         </a>
-                        <form method="POST" action="deleteOrder.php" style="flex: 1; max-width: 180px; min-width: 140px;" onsubmit="return confirm('Вы уверены, что хотите удалить этот заказ?');">
-                            <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
-                            <button type="submit" class="btn-delete">
-                                Удалить
-                            </button>
-                        </form>
-                    <?php endif; ?>
+                        
+                        <?php if ($order['user_id'] == $user_id): ?>
+                            <a href="editOrder.php?id=<?= $order['id'] ?>" class="btn-edit">
+                                ✏️ Редактировать
+                            </a>
+                            <form method="POST" action="deleteOrder.php" style="flex: 1; min-width: 140px;" onsubmit="return confirm('Вы уверены, что хотите удалить этот заказ?');">
+                                <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                <button type="submit" class="btn-delete" style="width: 100%;">
+                                    🗑️ Удалить
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <div class="no-results">
+                <p> Заказов не найдено</p>
+                <p style="font-size: 14px; margin-top: 10px; opacity: 0.8;">Попробуйте изменить параметры поиска</p>
             </div>
-        <?php endwhile; ?>
-    <?php else: ?>
-        <div class="no-results">
-            <p>Нет заказов, соответствующих фильтрам.</p>
-            <p style="font-size: 16px; margin-top: 10px;">Попробуйте изменить параметры поиска</p>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 
+    <script>
+        let cities = [];
+
+        fetch('/cities.json')
+            .then(response => response.json())
+            .then(data => {
+                cities = data.map(city => ({
+                    name: city.name,
+                    region: city.region,
+                    fullName: `${city.name}, ${city.region}`
+                }));
+            })
+            .catch(error => console.error('Ошибка загрузки городов:', error));
+
+        function initAutocomplete() {
+            const input = document.getElementById('location');
+            let currentFocus = -1;
+            
+            input.addEventListener('input', function() {
+                const value = this.value;
+                closeAllLists();
+                
+                if (!value) return false;
+                
+                currentFocus = -1;
+                
+                const container = this.parentNode;
+                const listDiv = document.createElement('div');
+                listDiv.setAttribute('id', 'location-autocomplete-list');
+                listDiv.setAttribute('class', 'autocomplete-items');
+                container.appendChild(listDiv);
+                
+                const filtered = cities.filter(city => 
+                    city.name.toLowerCase().includes(value.toLowerCase()) ||
+                    city.region.toLowerCase().includes(value.toLowerCase())
+                ).slice(0, 10);
+                
+                filtered.forEach(city => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.innerHTML = `
+                        <div class="city-name">${city.name}</div>
+                        <div class="city-region">${city.region}, Казахстан</div>
+                    `;
+                    
+                    itemDiv.addEventListener('click', function() {
+                        input.value = city.name;
+                        closeAllLists();
+                    });
+                    
+                    listDiv.appendChild(itemDiv);
+                });
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                let list = document.getElementById('location-autocomplete-list');
+                if (list) list = list.getElementsByTagName('div');
+                
+                if (e.keyCode === 40) {
+                    currentFocus++;
+                    addActive(list);
+                    e.preventDefault();
+                } else if (e.keyCode === 38) {
+                    currentFocus--;
+                    addActive(list);
+                    e.preventDefault();
+                } else if (e.keyCode === 13) {
+                    e.preventDefault();
+                    if (currentFocus > -1 && list) {
+                        list[currentFocus].click();
+                    }
+                }
+            });
+            
+            function addActive(list) {
+                if (!list) return false;
+                removeActive(list);
+                if (currentFocus >= list.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = list.length - 1;
+                list[currentFocus].classList.add('autocomplete-active');
+            }
+            
+            function removeActive(list) {
+                for (let i = 0; i < list.length; i++) {
+                    list[i].classList.remove('autocomplete-active');
+                }
+            }
+            
+            function closeAllLists(el) {
+                const items = document.getElementsByClassName('autocomplete-items');
+                for (let i = 0; i < items.length; i++) {
+                    if (el !== items[i] && el !== input) {
+                        items[i].parentNode.removeChild(items[i]);
+                    }
+                }
+            }
+            
+            document.addEventListener('click', function(e) {
+                closeAllLists(e.target);
+            });
+        }
+
+        initAutocomplete();
+    </script>
 </body>
 </html>
 

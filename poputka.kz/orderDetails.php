@@ -3,7 +3,7 @@ include('db_connection.php');
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    die('Вы должны войти в систему, чтобы принять заказ.');
+    die('Вы должны войти в систему, чтобы посмотерть заказ.');
 }
 
 $user_id = $_SESSION['user_id'];
@@ -322,13 +322,7 @@ $conn->close();
         </div>
 
         <?php if ($order): ?>
-            <?php if (isset($success_message)): ?>
-                <div class="success-message">✅ <?= $success_message ?></div>
-            <?php endif; ?>
-            
-            <?php if (isset($error_message)): ?>
-                <div class="error-message">⚠️ <?= $error_message ?></div>
-            <?php endif; ?>
+           
 
             <div class="order-card">
                 <h1>
@@ -337,7 +331,7 @@ $conn->close();
                         <?= htmlspecialchars($order['type']); ?>
                     </span>
                     <?php if ($order['accepted_by']): ?>
-                        <span class="badge badge-accepted">Принят</span>
+                        <span class="badge badge-accepted">Открыт</span>
                     <?php endif; ?>
                 </h1>
 

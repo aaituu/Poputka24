@@ -11,30 +11,26 @@ $user_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type = $_POST['type'] ?? null;
-    $region = $_POST['region'] ?? null;
     $from_location = $_POST['from'] ?? null;
-    $from_lat = $_POST['from_lat'] ?? null;
-    $from_lng = $_POST['from_lng'] ?? null;
     $to_location = $_POST['to'] ?? null;
-    $to_lat = $_POST['to_lat'] ?? null;
-    $to_lng = $_POST['to_lng'] ?? null;
     $date = $_POST['date'] ?? null;
     $description = $_POST['description'] ?? null;
     $role = $_POST['role'] ?? null;
     
-    $passengers = ($type === 'Легковой') ? ($_POST['passengers'] ?? null) : null;
-    $tonnage = ($type === 'Грузовой') ? ($_POST['tonnage'] ?? null) : null;
-    $volume = ($type === 'Грузовой') ? ($_POST['volume'] ?? null) : null;
-    $cargo_type = ($type === 'Грузовой') ? ($_POST['cargo_type'] ?? null) : null;
+    $passengers = ($role === 'Водитель легкового') ? ($_POST['passengers'] ?? null) : null;
+    $tonnage = ($role === 'Водитель грузового') ? ($_POST['tonnage'] ?? null) : null;
+    $volume = ($role === 'Водитель грузового') ? ($_POST['volume'] ?? null) : null;
 
-    if (!$type || !$region || !$from_location || !$to_location || !$date || !$role) {
+    if (!$type || !$from_location || !$to_location || !$date || !$role) {
         $error = "Ошибка: заполните все обязательные поля.";
     } else {
-        $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, from_lat, from_lng, 
-                                to_location, to_lat, to_lng, date, description, role, passengers, tonnage, volume, cargo_type) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssddsddssiidds", $user_id, $type, $region, $from_location, $from_lat, $from_lng, 
-                          $to_location, $to_lat, $to_lng, $date, $description, $role, $passengers, $tonnage, $volume, $cargo_type);
+        // Извлекаем область из населенного пункта
+        $from_parts = explode(', ', $from_location);
+        $region = isset($from_parts[1]) ? $from_parts[1] : '';
+        
+        $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, to_location, date, description, role, passengers, tonnage, volume) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssssssidd", $user_id, $type, $region, $from_location, $to_location, $date, $description, $role, $passengers, $tonnage, $volume);
 
         if ($stmt->execute()) {
             header("Location: orders.php");
@@ -53,39 +49,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Попутка 24 - Создание заказа</title>
-    <link rel="stylesheet" href="/css/ordersCreate.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        
+        .error-message {
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Montserrat', sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
         .autocomplete-container {
             position: relative;
-            width: 100%;
         }
         
         .autocomplete-items {
             position: absolute;
-            border: 1px solid #d4d4d4;
+            border: 1px solid #e0e0e0;
             border-top: none;
             z-index: 99;
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
             background-color: white;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .autocomplete-items div {
-            padding: 12px;
+            padding: 12px 15px;
             cursor: pointer;
             background-color: #fff;
-            border-bottom: 1px solid #d4d4d4;
+            border-bottom: 1px solid #f0f0f0;
             color: #2c3e50;
             transition: background-color 0.2s;
         }
         
         .autocomplete-items div:hover {
-            background-color: #e8f4f8;
+            background-color: #f8f9fa;
         }
         
         .autocomplete-active {
@@ -95,159 +170,214 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .city-name {
             font-weight: 600;
-            font-size: 16px;
+            font-size: 15px;
         }
         
         .city-region {
-            font-size: 14px;
+            font-size: 13px;
             color: #7f8c8d;
-            margin-top: 2px;
+            margin-top: 3px;
         }
         
         .autocomplete-active .city-region {
             color: #ecf0f1;
         }
         
-        input[type="text"]:focus {
-            border: 2px solid #3498db;
-            outline: none;
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
         }
         
-        .error-message {
-            background-color: #e74c3c;
-            color: white;
-            padding: 12px 20px;
+        button {
+            flex: 1;
+            padding: 14px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
             border-radius: 8px;
-            margin: 20px auto;
-            max-width: 600px;
-            text-align: center;
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-submit {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        .btn-submit:hover {
+            background-color: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-cancel {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .dynamic-fields {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        
+        .dynamic-fields.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .form-card {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
-    <main>
+    <div class="container">
         <h1>Создание заказа</h1>
         
-        <?php if (isset($error)): ?>
-            <div class="error-message"><?= $error ?></div>
-        <?php endif; ?>
+        <div class="form-card">
+            <?php if (isset($error)): ?>
+                <div class="error-message"><?= $error ?></div>
+            <?php endif; ?>
 
-        <form id="orderForm" action="createOrder.php" method="POST">
-            <label for="type">Тип перевозки:</label>
-            <select name="type" id="type" required onchange="toggleFormFields()">
-                <option value="">Выберите тип</option>
-                <option value="Грузовой">Грузовой</option>
-                <option value="Легковой">Легковой</option>
-            </select>
-            <br>
+            <form id="orderForm" action="createOrder.php" method="POST">
+                <div class="form-group">
+                    <label for="role">Я:</label>
+                    <select name="role" id="role" required onchange="updateForm()">
+                        <option value="">Выберите роль</option>
+                        <option value="Водитель легкового">Водитель легкового</option>
+                        <option value="Водитель грузового">Водитель грузового</option>
+                        <option value="Попутчик">Попутчик</option>
+                        <option value="Попутный груз">Попутный груз</option>
+                    </select>
+                </div>
 
-            <label for="region">Область:</label>
-            <select name="region" required>
-                <option value="">Выберите область</option>
-                <option value="Акмолинская область">Акмолинская область</option>
-                <option value="Улытауская область">Улытауская область</option>
-                <option value="Абайская область">Абайская область</option>
-                <option value="Жетысуйская область">Жетысуйская область</option>
-                <option value="Актюбинская область">Актюбинская область</option>
-                <option value="Алматинская область">Алматинская область</option>
-                <option value="Атырауская область">Атырауская область</option>
-                <option value="Восточно-Казахстанская область">Восточно-Казахстанская область</option>
-                <option value="Жамбылская область">Жамбылская область</option>
-                <option value="Западно-Казахстанская область">Западно-Казахстанская область</option>
-                <option value="Карагандинская область">Карагандинская область</option>
-                <option value="Костанайская область">Костанайская область</option>
-                <option value="Кызылординская область">Кызылординская область</option>
-                <option value="Мангистауская область">Мангистауская область</option>
-                <option value="Павлодарская область">Павлодарская область</option>
-                <option value="Северо-Казахстанская область">Северо-Казахстанская область</option>
-                <option value="Туркестанская область">Туркестанская область</option>
-            </select>
-            <br>
+                <input type="hidden" name="type" id="type">
 
-            <label for="from">Откуда:</label>
-            <div class="autocomplete-container">
-                <input type="text" name="from" id="from" required autocomplete="off" placeholder="Начните вводить название города...">
-                <input type="hidden" name="from_lat" id="from_lat">
-                <input type="hidden" name="from_lng" id="from_lng">
-            </div>
-            <br>
+                <div class="form-group">
+                    <label for="from">Откуда:</label>
+                    <div class="autocomplete-container">
+                        <input type="text" name="from" id="from" required autocomplete="off" placeholder="Начните вводить название населённого пункта...">
+                    </div>
+                </div>
 
-            <label for="to">Куда:</label>
-            <div class="autocomplete-container">
-                <input type="text" name="to" id="to" required autocomplete="off" placeholder="Начните вводить название города...">
-                <input type="hidden" name="to_lat" id="to_lat">
-                <input type="hidden" name="to_lng" id="to_lng">
-            </div>
-            <br>
+                <div class="form-group">
+                    <label for="to">Куда:</label>
+                    <div class="autocomplete-container">
+                        <input type="text" name="to" id="to" required autocomplete="off" placeholder="Начните вводить название населённого пункта...">
+                    </div>
+                </div>
 
-            <label for="date">Дата:</label>
-            <input type="date" name="date" required>
-            <br>
+                <div class="form-group">
+                    <label for="date">Дата:</label>
+                    <input type="date" name="date" id="date" required>
+                </div>
 
-            <div id="carFields" style="display: none;">
-                <label for="passengers">Количество пассажиров:</label>
-                <input type="number" name="passengers" id="passengers" min="1" max="20">
-                <br>
-            </div>
+                <div id="carFields" class="dynamic-fields">
+                    <div class="form-group">
+                        <label for="passengers">Количество мест:</label>
+                        <input type="number" name="passengers" id="passengers" min="1" max="20" placeholder="Например: 3">
+                    </div>
+                </div>
 
-            <div id="truckFields" style="display: none;">
-                <label for="tonnage">Тоннаж (тонн):</label>
-                <input type="number" name="tonnage" id="tonnage" step="0.1" min="0.1">
-                <br>
+                <div id="truckFields" class="dynamic-fields">
+                    <div class="form-group">
+                        <label for="tonnage">Грузоподъёмность (тонн):</label>
+                        <input type="number" name="tonnage" id="tonnage" step="0.1" min="0.1" placeholder="Например: 5">
+                    </div>
 
-                <label for="volume">Объём (м³):</label>
-                <input type="number" name="volume" id="volume" step="0.1" min="0.1">
-                <br>
+                    <div class="form-group">
+                        <label for="volume">Объём кузова (м³):</label>
+                        <input type="number" name="volume" id="volume" step="0.1" min="0.1" placeholder="Например: 20">
+                    </div>
+                </div>
 
-                <label for="cargo_type">Тип груза:</label>
-                <input type="text" name="cargo_type" id="cargo_type" placeholder="Например: стройматериалы">
-                <br>
-            </div>
+                <div class="form-group">
+                    <label for="description">Описание:</label>
+                    <textarea name="description" id="description" required placeholder="Укажите детали поездки: время отправления, особые условия и т.д."></textarea>
+                </div>
 
-            <label for="description">Описание:</label>
-            <textarea name="description" required placeholder="Опишите детали поездки..."></textarea>
-            <br>
-
-            <label for="role">Роль:</label>
-            <select name="role" required>
-                <option value="Попутчик">Попутчик</option>
-                <option value="Водитель">Водитель</option>
-            </select>
-            <br>
-
-            <button type="submit" class="CreateBtn">Создать заказ</button>
-            <a href="index.php"><button type="button">Отмена</button></a>
-        </form>
-    </main>
+                <div class="button-group">
+                    <button type="submit" class="btn-submit">✓ Создать заказ</button>
+                    <a href="index.php" style="flex: 1; text-decoration: none;">
+                        <button type="button" class="btn-cancel" style="width: 100%;">✕ Отмена</button>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
-        // База городов Казахстана
-    
+        let cities = [];
 
-        function toggleFormFields() {
-            const type = document.getElementById('type').value;
+        fetch('/cities.json')
+            .then(response => response.json())
+            .then(data => {
+                cities = data.map(city => ({
+                    name: city.name,
+                    region: city.region,
+                    fullName: `${city.name}, ${city.region}, Казахстан`
+                }));
+                console.log('Города загружены:', cities.length);
+            })
+            .catch(error => console.error('Ошибка загрузки городов:', error));
+
+        function updateForm() {
+            const role = document.getElementById('role').value;
+            const typeInput = document.getElementById('type');
             const carFields = document.getElementById('carFields');
             const truckFields = document.getElementById('truckFields');
+            const passengersInput = document.getElementById('passengers');
+            const tonnageInput = document.getElementById('tonnage');
+            const volumeInput = document.getElementById('volume');
 
-            if (type === 'Легковой') {
-                carFields.style.display = 'block';
-                truckFields.style.display = 'none';
-                document.getElementById('passengers').required = true;
-                document.getElementById('tonnage').required = false;
-                document.getElementById('volume').required = false;
-            } else if (type === 'Грузовой') {
-                carFields.style.display = 'none';
-                truckFields.style.display = 'block';
-                document.getElementById('passengers').required = false;
-                document.getElementById('tonnage').required = true;
-                document.getElementById('volume').required = true;
+            carFields.classList.remove('active');
+            truckFields.classList.remove('active');
+
+            if (role === 'Водитель легкового' || role === 'Попутчик') {
+                typeInput.value = 'Легковой';
+                carFields.classList.add('active');
+                passengersInput.required = true;
+                tonnageInput.required = false;
+                volumeInput.required = false;
+            } else if (role === 'Водитель грузового' || role === 'Попутный груз') {
+                typeInput.value = 'Грузовой';
+                truckFields.classList.add('active');
+                passengersInput.required = false;
+                tonnageInput.required = true;
+                volumeInput.required = true;
             } else {
-                carFields.style.display = 'none';
-                truckFields.style.display = 'none';
+                typeInput.value = '';
+                passengersInput.required = false;
+                tonnageInput.required = false;
+                volumeInput.required = false;
             }
         }
 
-        function initAutocomplete(inputId, latId, lngId) {
+        function initAutocomplete(inputId) {
             const input = document.getElementById(inputId);
             let currentFocus = -1;
             
@@ -274,13 +404,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const itemDiv = document.createElement('div');
                     itemDiv.innerHTML = `
                         <div class="city-name">${city.name}</div>
-                        <div class="city-region">${city.region}</div>
+                        <div class="city-region">${city.region}, Казахстан</div>
                     `;
                     
                     itemDiv.addEventListener('click', function() {
-                        input.value = `${city.name}, ${city.region}`;
-                        document.getElementById(latId).value = city.lat;
-                        document.getElementById(lngId).value = city.lng;
+                        input.value = city.fullName;
                         closeAllLists();
                     });
                     
@@ -292,15 +420,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 let list = document.getElementById(inputId + '-autocomplete-list');
                 if (list) list = list.getElementsByTagName('div');
                 
-                if (e.keyCode === 40) { // DOWN
+                if (e.keyCode === 40) {
                     currentFocus++;
                     addActive(list);
                     e.preventDefault();
-                } else if (e.keyCode === 38) { // UP
+                } else if (e.keyCode === 38) {
                     currentFocus--;
                     addActive(list);
                     e.preventDefault();
-                } else if (e.keyCode === 13) { // ENTER
+                } else if (e.keyCode === 13) {
                     e.preventDefault();
                     if (currentFocus > -1 && list) {
                         list[currentFocus].click();
@@ -335,26 +463,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 closeAllLists(e.target);
             });
         }
-    fetch('/cities.json') // ← путь поменяй, если файл лежит в другом месте
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Ошибка загрузки cities.json');
-        }
-        return response.json();
-    })
-    .then(data => {
-        cities = data;
-        console.log('Города загружены:', cities.length);
-        
-        // Инициализация после загрузки
-        initAutocomplete('from', 'from_lat', 'from_lng');
-        initAutocomplete('to', 'to_lat', 'to_lng');
-    })
-    .catch(error => {
-        console.error(error);
-    });
 
-  
+        initAutocomplete('from');
+        initAutocomplete('to');
+
+        // Устанавливаем минимальную дату на сегодня
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date').setAttribute('min', today);
     </script>
 </body>
 </html>

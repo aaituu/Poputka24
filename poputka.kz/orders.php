@@ -10,16 +10,29 @@ if ($user_id === null) {
 }
 
 // Фильтрация
-$location_filter = $_GET['location'] ?? '';
+$from_filter = $_GET['from'] ?? '';
+$to_filter = $_GET['to'] ?? '';
 $role_filter = $_GET['role'] ?? '';
 
 $sql = "SELECT orders.*, users.username, users.phone FROM orders 
         LEFT JOIN users ON orders.user_id = users.id 
         WHERE 1=1";
 
-if ($location_filter) {
-    $escaped_location = $conn->real_escape_string($location_filter);
-    $sql .= " AND orders.from_location LIKE '%" . $escaped_location . "%' ";
+// Фильтрация по маршруту
+if ($from_filter && $to_filter) {
+    // Поиск точного маршрута: откуда → куда
+    $escaped_from = $conn->real_escape_string($from_filter);
+    $escaped_to = $conn->real_escape_string($to_filter);
+    $sql .= " AND orders.from_location LIKE '%" . $escaped_from . "%' 
+              AND orders.to_location LIKE '%" . $escaped_to . "%'";
+} elseif ($from_filter) {
+    // Поиск только по отправлению
+    $escaped_from = $conn->real_escape_string($from_filter);
+    $sql .= " AND orders.from_location LIKE '%" . $escaped_from . "%'";
+} elseif ($to_filter) {
+    // Поиск только по назначению
+    $escaped_to = $conn->real_escape_string($to_filter);
+    $sql .= " AND orders.to_location LIKE '%" . $escaped_to . "%'";
 }
 
 if ($role_filter) {
@@ -118,7 +131,7 @@ $result = $conn->query($sql);
         
         .filter-form {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
         }
         
@@ -164,11 +177,11 @@ $result = $conn->query($sql);
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
             background-color: white;
             border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .autocomplete-items div {
@@ -189,19 +202,39 @@ $result = $conn->query($sql);
             color: white !important;
         }
         
-        .city-name {
+        .location-name {
             font-weight: 600;
             font-size: 15px;
         }
         
-        .city-region {
+        .location-details {
             font-size: 13px;
             color: #7f8c8d;
             margin-top: 3px;
         }
         
-        .autocomplete-active .city-region {
+        .autocomplete-active .location-details {
             color: #ecf0f1;
+        }
+        
+        .loading-indicator {
+            padding: 12px 15px;
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .no-results-dropdown {
+            padding: 12px 15px;
+            text-align: center;
+            color: #95a5a6;
+            font-size: 14px;
+        }
+        
+        .hint-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
         }
         
         .filter-buttons {
@@ -245,6 +278,15 @@ $result = $conn->query($sql);
         
         .btn-secondary:hover {
             background-color: #7f8c8d;
+        }
+        
+        .route-indicator {
+            text-align: center;
+            color: #3498db;
+            font-size: 20px;
+            margin: 0 10px;
+            align-self: end;
+            padding-bottom: 12px;
         }
         
         .order-card {
@@ -299,9 +341,42 @@ $result = $conn->query($sql);
             color: white;
         }
         
+        .order-route {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .route-point {
+            flex: 1;
+        }
+        
+        .route-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .route-value {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .route-arrow {
+            font-size: 24px;
+            color: #3498db;
+        }
+        
         .order-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
             margin-bottom: 15px;
         }
@@ -409,6 +484,19 @@ $result = $conn->query($sql);
                 grid-template-columns: 1fr;
             }
             
+            .route-indicator {
+                display: none;
+            }
+            
+            .order-route {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .route-arrow {
+                transform: rotate(90deg);
+            }
+            
             .order-info {
                 grid-template-columns: 1fr;
             }
@@ -440,19 +528,32 @@ $result = $conn->query($sql);
     </div>
 
     <div class="container">
-        <h1>Список заказов</h1>
+        <h1>Поиск заказов</h1>
 
         <div class="filter-card">
-            <h3>🔍 Поиск заказов</h3>
+            <h3>🔍 Найти маршрут</h3>
             <form method="GET" action="">
                 <div class="filter-form">
                     <div class="form-group">
-                        <label for="location">Населённый пункт:</label>
+                        <label for="from">Откуда:</label>
                         <div class="autocomplete-container">
-                            <input type="text" name="location" id="location" value="<?= htmlspecialchars($location_filter) ?>" autocomplete="off" placeholder="Начните вводить название...">
+                            <input type="text" name="from" id="from" value="<?= htmlspecialchars($from_filter) ?>" autocomplete="off" placeholder="Любой населённый пункт...">
                         </div>
+                        <div class="hint-text">Оставьте пустым для поиска по всем направлениям</div>
                     </div>
 
+                    <div class="route-indicator">→</div>
+
+                    <div class="form-group">
+                        <label for="to">Куда:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" name="to" id="to" value="<?= htmlspecialchars($to_filter) ?>" autocomplete="off" placeholder="Любой населённый пункт...">
+                        </div>
+                        <div class="hint-text">Оставьте пустым для поиска по всем направлениям</div>
+                    </div>
+                </div>
+
+                <div class="filter-form" style="margin-top: 15px;">
                     <div class="form-group">
                         <label for="role">Роль:</label>
                         <select name="role" id="role">
@@ -464,8 +565,8 @@ $result = $conn->query($sql);
                         </select>
                     </div>
 
-                    <div class="filter-buttons">
-                        <button type="submit" class="btn-primary">🔍 Найти</button>
+                    <div class="filter-buttons" style="grid-column: 2 / -1;">
+                        <button type="submit" class="btn-primary">🔍 Найти маршрут</button>
                         <a href="orders.php" class="btn-secondary">🔄 Сбросить</a>
                     </div>
                 </div>
@@ -503,15 +604,19 @@ $result = $conn->query($sql);
                         </div>
                     </div>
                     
+                    <div class="order-route">
+                        <div class="route-point">
+                            <div class="route-label">📍 Откуда</div>
+                            <div class="route-value"><?= htmlspecialchars($order['from_location']) ?></div>
+                        </div>
+                        <div class="route-arrow">→</div>
+                        <div class="route-point">
+                            <div class="route-label">📍 Куда</div>
+                            <div class="route-value"><?= htmlspecialchars($order['to_location']) ?></div>
+                        </div>
+                    </div>
+                    
                     <div class="order-info">
-                        <div class="info-item">
-                            <span class="info-label">📍 Откуда:</span>
-                            <span class="info-value"><?= htmlspecialchars($order['from_location']) ?></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">📍 Куда:</span>
-                            <span class="info-value"><?= htmlspecialchars($order['to_location']) ?></span>
-                        </div>
                         <div class="info-item">
                             <span class="info-label">📅 Дата:</span>
                             <span class="info-value"><?= date('d.m.Y', strtotime($order['date'])) ?></span>
@@ -565,96 +670,226 @@ $result = $conn->query($sql);
             <?php endwhile; ?>
         <?php else: ?>
             <div class="no-results">
-                <p> Заказов не найдено</p>
-                <p style="font-size: 14px; margin-top: 10px; opacity: 0.8;">Попробуйте изменить параметры поиска</p>
+                <p>😔 Маршрутов не найдено</p>
+                <p style="font-size: 14px; margin-top: 10px; opacity: 0.8;">
+                    <?php if ($from_filter || $to_filter): ?>
+                        Попробуйте изменить параметры поиска или оставить одно из полей пустым
+                    <?php else: ?>
+                        Пока нет опубликованных заказов
+                    <?php endif; ?>
+                </p>
             </div>
         <?php endif; ?>
     </div>
 
     <script>
-        let cities = [];
+        // Debounce функция
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
-        fetch('/cities.json')
-            .then(response => response.json())
-            .then(data => {
-                cities = data.map(city => ({
-                    name: city.name,
-                    region: city.region,
-                    fullName: `${city.name}, ${city.region}`
-                }));
-            })
-            .catch(error => console.error('Ошибка загрузки городов:', error));
+        // Улучшенная функция поиска
+        async function searchPlaces(query) {
+            if (query.length < 2) return [];
+            
+            try {
+                // Два параллельных запроса для лучшего покрытия
+                const wildcardSearch = fetch(
+                    `https://nominatim.openstreetmap.org/search?` +
+                    `q=${encodeURIComponent(query + '*')}&` +
+                    `format=json&` +
+                    `addressdetails=1&` +
+                    `limit=20&` +
+                    `accept-language=ru`
+                );
+                
+                const exactSearch = fetch(
+                    `https://nominatim.openstreetmap.org/search?` +
+                    `q=${encodeURIComponent(query)}&` +
+                    `format=json&` +
+                    `addressdetails=1&` +
+                    `limit=20&` +
+                    `accept-language=ru`
+                );
+                
+                const [wildcardResponse, exactResponse] = await Promise.all([
+                    wildcardSearch,
+                    exactSearch
+                ]);
+                
+                if (!wildcardResponse.ok || !exactResponse.ok) {
+                    throw new Error('Search failed');
+                }
+                
+                const [wildcardData, exactData] = await Promise.all([
+                    wildcardResponse.json(),
+                    exactResponse.json()
+                ]);
+                
+                const allData = [...wildcardData, ...exactData];
+                
+                // Удаляем дубликаты
+                const uniqueData = Array.from(
+                    new Map(allData.map(item => [item.place_id, item])).values()
+                );
+                
+                const results = uniqueData
+                    .filter(place => {
+                        const types = ['city', 'town', 'village', 'hamlet', 'suburb', 'municipality', 'administrative'];
+                        const name = place.name || '';
+                        const lowerQuery = query.toLowerCase();
+                        const lowerName = name.toLowerCase();
+                        
+                        return (types.includes(place.type) || place.class === 'place') &&
+                               lowerName.startsWith(lowerQuery);
+                    })
+                    .map(place => {
+                        const address = place.address || {};
+                        const parts = [];
+                        
+                        const name = place.name || 
+                                   address.city || 
+                                   address.town || 
+                                   address.village || 
+                                   address.hamlet ||
+                                   address.municipality;
+                        
+                        const region = address.state || address.region || address.county;
+                        const country = address.country;
+                        
+                        if (name) parts.push(name);
+                        if (region) parts.push(region);
+                        if (country) parts.push(country);
+                        
+                        return {
+                            name: name,
+                            fullName: parts.join(', '),
+                            type: place.type,
+                            region: region,
+                            country: country,
+                            importance: place.importance || 0
+                        };
+                    })
+                    .filter(place => place.name);
+                
+                // Сортировка
+                results.sort((a, b) => {
+                    const lenDiff = a.name.length - b.name.length;
+                    if (Math.abs(lenDiff) > 3) return lenDiff;
+                    
+                    const impDiff = b.importance - a.importance;
+                    if (Math.abs(impDiff) > 0.1) return impDiff;
+                    
+                    return a.name.localeCompare(b.name, 'ru');
+                });
+                
+                return results.slice(0, 15);
+                    
+            } catch (error) {
+                console.error('Search error:', error);
+                return [];
+            }
+        }
 
-        function initAutocomplete() {
-            const input = document.getElementById('location');
+        function initAutocomplete(inputId) {
+            const input = document.getElementById(inputId);
             let currentFocus = -1;
             
-            input.addEventListener('input', function() {
-                const value = this.value;
+            const debouncedSearch = debounce(async (value) => {
                 closeAllLists();
                 
-                if (!value) return false;
+                if (!value || value.length < 2) return;
                 
                 currentFocus = -1;
                 
-                const container = this.parentNode;
+                const container = input.parentNode;
                 const listDiv = document.createElement('div');
-                listDiv.setAttribute('id', 'location-autocomplete-list');
+                listDiv.setAttribute('id', inputId + '-autocomplete-list');
                 listDiv.setAttribute('class', 'autocomplete-items');
                 container.appendChild(listDiv);
                 
-                const filtered = cities.filter(city => 
-                    city.name.toLowerCase().includes(value.toLowerCase()) ||
-                    city.region.toLowerCase().includes(value.toLowerCase())
-                ).slice(0, 10);
+                listDiv.innerHTML = '<div class="loading-indicator">🔍 Поиск...</div>';
                 
-                filtered.forEach(city => {
+                const results = await searchPlaces(value);
+                
+                listDiv.innerHTML = '';
+                
+                if (results.length === 0) {
+                    listDiv.innerHTML = '<div class="no-results-dropdown">Ничего не найдено</div>';
+                    return;
+                }
+                
+                results.forEach(place => {
                     const itemDiv = document.createElement('div');
+                    
+                    let typeIcon = '📍';
+                    if (place.type === 'city') typeIcon = '🏙️';
+                    else if (place.type === 'town') typeIcon = '🏘️';
+                    else if (place.type === 'village') typeIcon = '🏡';
+                    
                     itemDiv.innerHTML = `
-                        <div class="city-name">${city.name}</div>
-                        <div class="city-region">${city.region}, Казахстан</div>
+                        <div class="location-name">${typeIcon} ${place.name}</div>
+                        <div class="location-details">${place.region ? place.region + ', ' : ''}${place.country}</div>
                     `;
                     
                     itemDiv.addEventListener('click', function() {
-                        input.value = city.name;
+                        input.value = place.name;
                         closeAllLists();
                     });
                     
                     listDiv.appendChild(itemDiv);
                 });
+            }, 300);
+            
+            input.addEventListener('input', function() {
+                debouncedSearch(this.value);
             });
             
             input.addEventListener('keydown', function(e) {
-                let list = document.getElementById('location-autocomplete-list');
-                if (list) list = list.getElementsByTagName('div');
-                
-                if (e.keyCode === 40) {
-                    currentFocus++;
-                    addActive(list);
-                    e.preventDefault();
-                } else if (e.keyCode === 38) {
-                    currentFocus--;
-                    addActive(list);
-                    e.preventDefault();
-                } else if (e.keyCode === 13) {
-                    e.preventDefault();
-                    if (currentFocus > -1 && list) {
-                        list[currentFocus].click();
+                let list = document.getElementById(inputId + '-autocomplete-list');
+                if (list) {
+                    let items = list.getElementsByTagName('div');
+                    items = Array.from(items).filter(item => 
+                        !item.classList.contains('loading-indicator') && 
+                        !item.classList.contains('no-results-dropdown')
+                    );
+                    
+                    if (e.keyCode === 40) {
+                        currentFocus++;
+                        addActive(items);
+                        e.preventDefault();
+                    } else if (e.keyCode === 38) {
+                        currentFocus--;
+                        addActive(items);
+                        e.preventDefault();
+                    } else if (e.keyCode === 13) {
+                        e.preventDefault();
+                        if (currentFocus > -1 && items[currentFocus]) {
+                            items[currentFocus].click();
+                        }
                     }
                 }
             });
             
-            function addActive(list) {
-                if (!list) return false;
-                removeActive(list);
-                if (currentFocus >= list.length) currentFocus = 0;
-                if (currentFocus < 0) currentFocus = list.length - 1;
-                list[currentFocus].classList.add('autocomplete-active');
+            function addActive(items) {
+                if (!items || items.length === 0) return false;
+                removeActive(items);
+                if (currentFocus >= items.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = items.length - 1;
+                items[currentFocus].classList.add('autocomplete-active');
             }
             
-            function removeActive(list) {
-                for (let i = 0; i < list.length; i++) {
-                    list[i].classList.remove('autocomplete-active');
+            function removeActive(items) {
+                for (let i = 0; i < items.length; i++) {
+                    items[i].classList.remove('autocomplete-active');
                 }
             }
             
@@ -672,7 +907,8 @@ $result = $conn->query($sql);
             });
         }
 
-        initAutocomplete();
+        initAutocomplete('from');
+        initAutocomplete('to');
     </script>
 </body>
 </html>

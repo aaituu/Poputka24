@@ -17,20 +17,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = $_POST['description'] ?? null;
     $role = $_POST['role'] ?? null;
     
-    $passengers = ($role === 'Водитель легкового') ? ($_POST['passengers'] ?? null) : null;
-    $tonnage = ($role === 'Водитель грузового') ? ($_POST['tonnage'] ?? null) : null;
-    $volume = ($role === 'Водитель грузового') ? ($_POST['volume'] ?? null) : null;
+    $from_lat = $_POST['from_lat'] ?? null;
+    $from_lng = $_POST['from_lng'] ?? null;
+    $to_lat = $_POST['to_lat'] ?? null;
+    $to_lng = $_POST['to_lng'] ?? null;
+    
+    $passengers = ($role === 'Водитель легкового' || $role === 'Попутчик') ? ($_POST['passengers'] ?? null) : null;
+    $tonnage = ($role === 'Водитель грузового' || $role === 'Попутный груз') ? ($_POST['tonnage'] ?? null) : null;
+    $volume = ($role === 'Водитель грузового' || $role === 'Попутный груз') ? ($_POST['volume'] ?? null) : null;
 
     if (!$type || !$from_location || !$to_location || !$date || !$role) {
         $error = "Ошибка: заполните все обязательные поля.";
     } else {
-        // Извлекаем область из населенного пункта
         $from_parts = explode(', ', $from_location);
-        $region = isset($from_parts[1]) ? $from_parts[1] : '';
+        $region = isset($from_parts[1]) ? $from_parts[1] : (isset($from_parts[0]) ? $from_parts[0] : '');
         
-        $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, to_location, date, description, role, passengers, tonnage, volume) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssssssidd", $user_id, $type, $region, $from_location, $to_location, $date, $description, $role, $passengers, $tonnage, $volume);
+        $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, from_lat, from_lng, to_location, to_lat, to_lng, date, description, role, passengers, tonnage, volume) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssddsddsssidd", $user_id, $type, $region, $from_location, $from_lat, $from_lng, $to_location, $to_lat, $to_lng, $date, $description, $role, $passengers, $tonnage, $volume);
 
         if ($stmt->execute()) {
             header("Location: orders.php");
@@ -143,11 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 250px;
+            max-height: 300px;
             overflow-y: auto;
             background-color: white;
             border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .autocomplete-items div {
@@ -168,19 +172,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: white !important;
         }
         
-        .city-name {
+        .location-name {
             font-weight: 600;
             font-size: 15px;
         }
         
-        .city-region {
+        .location-details {
             font-size: 13px;
             color: #7f8c8d;
             margin-top: 3px;
         }
         
-        .autocomplete-active .city-region {
+        .autocomplete-active .location-details {
             color: #ecf0f1;
+        }
+        
+        .loading-indicator {
+            padding: 12px 15px;
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .no-results {
+            padding: 12px 15px;
+            text-align: center;
+            color: #95a5a6;
+            font-size: 14px;
         }
         
         .button-group {
@@ -235,6 +253,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             to { opacity: 1; transform: translateY(0); }
         }
         
+        .hint-text {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -280,15 +304,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label for="from">Откуда:</label>
                     <div class="autocomplete-container">
-                        <input type="text" name="from" id="from" required autocomplete="off" placeholder="Начните вводить название населённого пункта...">
+                        <input type="text" name="from" id="from" required autocomplete="off" placeholder="Начните вводить: город, посёлок, село...">
+                        <input type="hidden" name="from_lat" id="from_lat">
+                        <input type="hidden" name="from_lng" id="from_lng">
                     </div>
+                    <div class="hint-text">🌍 Поиск по всему миру: любой город, посёлок или село</div>
                 </div>
 
                 <div class="form-group">
                     <label for="to">Куда:</label>
                     <div class="autocomplete-container">
-                        <input type="text" name="to" id="to" required autocomplete="off" placeholder="Начните вводить название населённого пункта...">
+                        <input type="text" name="to" id="to" required autocomplete="off" placeholder="Начните вводить: город, посёлок, село...">
+                        <input type="hidden" name="to_lat" id="to_lat">
+                        <input type="hidden" name="to_lng" id="to_lng">
                     </div>
+                    <div class="hint-text">🌍 Поиск по всему миру: любой город, посёлок или село</div>
                 </div>
 
                 <div class="form-group">
@@ -331,19 +361,132 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        let cities = [];
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
-        fetch('/cities.json')
-            .then(response => response.json())
-            .then(data => {
-                cities = data.map(city => ({
-                    name: city.name,
-                    region: city.region,
-                    fullName: `${city.name}, ${city.region}, Казахстан`
-                }));
-                console.log('Города загружены:', cities.length);
-            })
-            .catch(error => console.error('Ошибка загрузки городов:', error));
+        // Улучшенная функция поиска с несколькими стратегиями
+        async function searchPlaces(query) {
+            if (query.length < 2) return [];
+            
+            try {
+                // Стратегия 1: Поиск с подстановочным символом (более широкий поиск)
+                const wildcardSearch = fetch(
+                    `https://nominatim.openstreetmap.org/search?` +
+                    `q=${encodeURIComponent(query + '*')}&` +
+                    `format=json&` +
+                    `addressdetails=1&` +
+                    `limit=20&` +
+                    `accept-language=ru`
+                );
+                
+                // Стратегия 2: Точный поиск по началу названия
+                const exactSearch = fetch(
+                    `https://nominatim.openstreetmap.org/search?` +
+                    `q=${encodeURIComponent(query)}&` +
+                    `format=json&` +
+                    `addressdetails=1&` +
+                    `limit=20&` +
+                    `accept-language=ru`
+                );
+                
+                // Выполняем оба запроса параллельно
+                const [wildcardResponse, exactResponse] = await Promise.all([
+                    wildcardSearch,
+                    exactSearch
+                ]);
+                
+                if (!wildcardResponse.ok || !exactResponse.ok) {
+                    throw new Error('Search failed');
+                }
+                
+                const [wildcardData, exactData] = await Promise.all([
+                    wildcardResponse.json(),
+                    exactResponse.json()
+                ]);
+                
+                // Объединяем результаты
+                const allData = [...wildcardData, ...exactData];
+                
+                // Удаляем дубликаты по place_id
+                const uniqueData = Array.from(
+                    new Map(allData.map(item => [item.place_id, item])).values()
+                );
+                
+                // Фильтруем и форматируем результаты
+                const results = uniqueData
+                    .filter(place => {
+                        const types = ['city', 'town', 'village', 'hamlet', 'suburb', 'municipality', 'administrative'];
+                        const name = place.name || '';
+                        const lowerQuery = query.toLowerCase();
+                        const lowerName = name.toLowerCase();
+                        
+                        // Показываем только населённые пункты и те, что начинаются с поискового запроса
+                        return (types.includes(place.type) || place.class === 'place') &&
+                               lowerName.startsWith(lowerQuery);
+                    })
+                    .map(place => {
+                        const address = place.address || {};
+                        const parts = [];
+                        
+                        const name = place.name || 
+                                   address.city || 
+                                   address.town || 
+                                   address.village || 
+                                   address.hamlet ||
+                                   address.municipality;
+                        
+                        const region = address.state || address.region || address.county;
+                        const country = address.country;
+                        
+                        if (name) parts.push(name);
+                        if (region) parts.push(region);
+                        if (country) parts.push(country);
+                        
+                        return {
+                            name: name,
+                            fullName: parts.join(', '),
+                            displayName: place.display_name,
+                            lat: place.lat,
+                            lng: place.lon,
+                            type: place.type,
+                            region: region,
+                            country: country,
+                            importance: place.importance || 0
+                        };
+                    })
+                    .filter(place => place.name);
+                
+                // Сортируем по важности и алфавиту
+                results.sort((a, b) => {
+                    // Сначала по длине названия (короткие - выше)
+                    const lenDiff = a.name.length - b.name.length;
+                    if (Math.abs(lenDiff) > 3) return lenDiff;
+                    
+                    // Потом по важности (importance)
+                    const impDiff = b.importance - a.importance;
+                    if (Math.abs(impDiff) > 0.1) return impDiff;
+                    
+                    // Потом по алфавиту
+                    return a.name.localeCompare(b.name, 'ru');
+                });
+                
+                // Ограничиваем до 15 результатов
+                return results.slice(0, 15);
+                    
+            } catch (error) {
+                console.error('Search error:', error);
+                return [];
+            }
+        }
 
         function updateForm() {
             const role = document.getElementById('role').value;
@@ -377,76 +520,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        function initAutocomplete(inputId) {
+        function initAutocomplete(inputId, latId, lngId) {
             const input = document.getElementById(inputId);
             let currentFocus = -1;
             
-            input.addEventListener('input', function() {
-                const value = this.value;
+            const debouncedSearch = debounce(async (value) => {
                 closeAllLists();
                 
-                if (!value) return false;
+                if (!value || value.length < 2) return;
                 
                 currentFocus = -1;
                 
-                const container = this.parentNode;
+                const container = input.parentNode;
                 const listDiv = document.createElement('div');
                 listDiv.setAttribute('id', inputId + '-autocomplete-list');
                 listDiv.setAttribute('class', 'autocomplete-items');
                 container.appendChild(listDiv);
                 
-                const filtered = cities.filter(city => 
-                    city.name.toLowerCase().includes(value.toLowerCase()) ||
-                    city.region.toLowerCase().includes(value.toLowerCase())
-                ).slice(0, 10);
+                listDiv.innerHTML = '<div class="loading-indicator">🔍 Поиск...</div>';
                 
-                filtered.forEach(city => {
+                const results = await searchPlaces(value);
+                
+                listDiv.innerHTML = '';
+                
+                if (results.length === 0) {
+                    listDiv.innerHTML = '<div class="no-results">Ничего не найдено. Попробуйте другой запрос.</div>';
+                    return;
+                }
+                
+                results.forEach(place => {
                     const itemDiv = document.createElement('div');
+                    
+                    let typeIcon = '📍';
+                    if (place.type === 'city') typeIcon = '🏙️';
+                    else if (place.type === 'town') typeIcon = '🏘️';
+                    else if (place.type === 'village') typeIcon = '🏡';
+                    
                     itemDiv.innerHTML = `
-                        <div class="city-name">${city.name}</div>
-                        <div class="city-region">${city.region}, Казахстан</div>
+                        <div class="location-name">${typeIcon} ${place.name}</div>
+                        <div class="location-details">${place.region ? place.region + ', ' : ''}${place.country}</div>
                     `;
                     
                     itemDiv.addEventListener('click', function() {
-                        input.value = city.fullName;
+                        input.value = place.fullName;
+                        document.getElementById(latId).value = place.lat;
+                        document.getElementById(lngId).value = place.lng;
                         closeAllLists();
                     });
                     
                     listDiv.appendChild(itemDiv);
                 });
+            }, 300); // Уменьшил до 300ms для более быстрого отклика
+            
+            input.addEventListener('input', function() {
+                debouncedSearch(this.value);
             });
             
             input.addEventListener('keydown', function(e) {
                 let list = document.getElementById(inputId + '-autocomplete-list');
-                if (list) list = list.getElementsByTagName('div');
-                
-                if (e.keyCode === 40) {
-                    currentFocus++;
-                    addActive(list);
-                    e.preventDefault();
-                } else if (e.keyCode === 38) {
-                    currentFocus--;
-                    addActive(list);
-                    e.preventDefault();
-                } else if (e.keyCode === 13) {
-                    e.preventDefault();
-                    if (currentFocus > -1 && list) {
-                        list[currentFocus].click();
+                if (list) {
+                    let items = list.getElementsByTagName('div');
+                    items = Array.from(items).filter(item => 
+                        !item.classList.contains('loading-indicator') && 
+                        !item.classList.contains('no-results')
+                    );
+                    
+                    if (e.keyCode === 40) {
+                        currentFocus++;
+                        addActive(items);
+                        e.preventDefault();
+                    } else if (e.keyCode === 38) {
+                        currentFocus--;
+                        addActive(items);
+                        e.preventDefault();
+                    } else if (e.keyCode === 13) {
+                        e.preventDefault();
+                        if (currentFocus > -1 && items[currentFocus]) {
+                            items[currentFocus].click();
+                        }
                     }
                 }
             });
             
-            function addActive(list) {
-                if (!list) return false;
-                removeActive(list);
-                if (currentFocus >= list.length) currentFocus = 0;
-                if (currentFocus < 0) currentFocus = list.length - 1;
-                list[currentFocus].classList.add('autocomplete-active');
+            function addActive(items) {
+                if (!items || items.length === 0) return false;
+                removeActive(items);
+                if (currentFocus >= items.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = items.length - 1;
+                items[currentFocus].classList.add('autocomplete-active');
             }
             
-            function removeActive(list) {
-                for (let i = 0; i < list.length; i++) {
-                    list[i].classList.remove('autocomplete-active');
+            function removeActive(items) {
+                for (let i = 0; i < items.length; i++) {
+                    items[i].classList.remove('autocomplete-active');
                 }
             }
             
@@ -464,10 +630,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
 
-        initAutocomplete('from');
-        initAutocomplete('to');
+        initAutocomplete('from', 'from_lat', 'from_lng');
+        initAutocomplete('to', 'to_lat', 'to_lng');
 
-        // Устанавливаем минимальную дату на сегодня
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date').setAttribute('min', today);
     </script>

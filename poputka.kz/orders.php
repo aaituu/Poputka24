@@ -13,9 +13,33 @@ $from_filter = $_GET['from'] ?? '';
 $to_filter = $_GET['to'] ?? '';
 $role_filter = $_GET['role'] ?? '';
 
-$sql = "SELECT orders.*, users.username, users.phone FROM orders 
-        LEFT JOIN users ON orders.user_id = users.id 
-        WHERE 1=1";
+// ИСПРАВЛЕНО: Добавлен явный выбор всех полей из orders
+$sql = "SELECT 
+    orders.id,
+    orders.user_id,
+    orders.type,
+    orders.region,
+    orders.from_location,
+    orders.from_lat,
+    orders.from_lng,
+    orders.to_location,
+    orders.to_lat,
+    orders.to_lng,
+    orders.date,
+    orders.description,
+    orders.role,
+    orders.passengers,
+    orders.tonnage,
+    orders.volume,
+    orders.car_brand,
+    orders.car_model,
+    orders.accepted_by,
+    orders.created_at,
+    users.username,
+    users.phone 
+FROM orders 
+LEFT JOIN users ON orders.user_id = users.id 
+WHERE 1=1";
 
 if ($from_filter && $to_filter) {
     $escaped_from = $conn->real_escape_string($from_filter);
@@ -36,6 +60,9 @@ if ($role_filter) {
 
 $sql .= " ORDER BY orders.created_at DESC";
 $result = $conn->query($sql);
+
+// Для отладки - раскомментируйте эту строку, чтобы увидеть SQL-запрос
+// echo "<!-- SQL: " . $sql . " -->";
 ?>
 
 <!DOCTYPE html>
@@ -574,7 +601,9 @@ $result = $conn->query($sql);
         <?php if ($result->num_rows > 0): ?>
             <?php while ($order = $result->fetch_assoc()): 
                 $badgeClass = '';
-                switch($order['role']) {
+                $role = $order['role'] ?? 'Роль не указана'; // Защита от пустого значения
+                
+                switch($role) {
                     case 'Водитель легкового':
                         $badgeClass = 'badge-driver-car';
                         break;
@@ -587,13 +616,15 @@ $result = $conn->query($sql);
                     case 'Попутный груз':
                         $badgeClass = 'badge-cargo';
                         break;
+                    default:
+                        $badgeClass = 'badge-driver-car';
                 }
             ?>
                 <div class="order-card">
                     <div class="order-header">
                         <div>
                             <span class="badge <?= $badgeClass ?>">
-                                <?= htmlspecialchars($order['role'] ?? 'Роль не указана') ?>
+                                <?= htmlspecialchars($role) ?>
                             </span>
                         </div>
                         <div class="info-item">
@@ -914,4 +945,4 @@ $result = $conn->query($sql);
 
 <?php
 $conn->close();
-?>
+?>  

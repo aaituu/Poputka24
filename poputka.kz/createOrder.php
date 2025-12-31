@@ -9,6 +9,22 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+// Получаем все марки автомобилей
+$brands_query = "SELECT id, name FROM car_brands ORDER BY name";
+$brands_result = $conn->query($brands_query);
+$brands = [];
+while ($row = $brands_result->fetch_assoc()) {
+    $brands[] = $row;
+}
+
+// Получаем все модели (для JavaScript)
+$models_query = "SELECT id, brand_id, name FROM car_models ORDER BY name";
+$models_result = $conn->query($models_query);
+$models = [];
+while ($row = $models_result->fetch_assoc()) {
+    $models[] = $row;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type = $_POST['type'] ?? null;
     $from_location = $_POST['from'] ?? null;
@@ -25,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $passengers = ($role === 'Водитель легкового' || $role === 'Попутчик') ? ($_POST['passengers'] ?? null) : null;
     $tonnage = ($role === 'Водитель грузового' || $role === 'Попутный груз') ? ($_POST['tonnage'] ?? null) : null;
     $volume = ($role === 'Водитель грузового' || $role === 'Попутный груз') ? ($_POST['volume'] ?? null) : null;
+    
+    // Новые поля для автомобиля
+    $car_brand = ($role === 'Водитель легкового' || $role === 'Водитель грузового') ? ($_POST['car_brand'] ?? null) : null;
+    $car_model = ($role === 'Водитель легкового' || $role === 'Водитель грузового') ? ($_POST['car_model'] ?? null) : null;
 
     if (!$type || !$from_location || !$to_location || !$date || !$role) {
         $error = "Ошибка: заполните все обязательные поля.";
@@ -32,9 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $from_parts = explode(', ', $from_location);
         $region = isset($from_parts[1]) ? $from_parts[1] : (isset($from_parts[0]) ? $from_parts[0] : '');
         
-        $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, from_lat, from_lng, to_location, to_lat, to_lng, date, description, role, passengers, tonnage, volume) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssddsddsssidd", $user_id, $type, $region, $from_location, $from_lat, $from_lng, $to_location, $to_lat, $to_lng, $date, $description, $role, $passengers, $tonnage, $volume);
+        $stmt = $conn->prepare("INSERT INTO orders (user_id, type, region, from_location, from_lat, from_lng, to_location, to_lat, to_lng, date, description, role, passengers, tonnage, volume, car_brand, car_model) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssddsddssiddsss", $user_id, $type, $region, $from_location, $from_lat, $from_lng, $to_location, $to_lat, $to_lng, $date, $description, $role, $passengers, $tonnage, $volume, $car_brand, $car_model);
 
         if ($stmt->execute()) {
             header("Location: orders.php");
@@ -259,6 +279,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 5px;
         }
         
+        .car-info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .car-info-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -300,6 +333,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <input type="hidden" name="type" id="type">
+
+                <!-- Секция информации об автомобиле -->
+                <div id="carInfoSection" class="dynamic-fields">
+                    <div class="car-info-section">
+                        <h3>🚗 Информация об автомобиле</h3>
+                        
+                        <div class="form-group">
+                            <label for="car_brand">Марка автомобиля:</label>
+                            <select name="car_brand" id="car_brand" onchange="updateCarModels()">
+                                <option value="">Выберите марку</option>
+                                <?php foreach ($brands as $brand): ?>
+                                    <option value="<?= htmlspecialchars($brand['name']) ?>" data-id="<?= $brand['id'] ?>">
+                                        <?= htmlspecialchars($brand['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="car_model">Модель автомобиля:</label>
+                            <select name="car_model" id="car_model" disabled>
+                                <option value="">Сначала выберите марку</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="form-group">
                     <label for="from">Откуда:</label>
@@ -361,6 +420,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+        // Данные моделей автомобилей из PHP
+        const carModelsData = <?= json_encode($models) ?>;
+        
+        function updateCarModels() {
+            const brandSelect = document.getElementById('car_brand');
+            const modelSelect = document.getElementById('car_model');
+            const selectedOption = brandSelect.options[brandSelect.selectedIndex];
+            const brandId = selectedOption.getAttribute('data-id');
+            
+            // Очищаем список моделей
+            modelSelect.innerHTML = '<option value="">Выберите модель</option>';
+            
+            if (brandId) {
+                // Фильтруем модели по выбранной марке
+                const filteredModels = carModelsData.filter(model => model.brand_id == brandId);
+                
+                // Добавляем модели в select
+                filteredModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.name;
+                    modelSelect.appendChild(option);
+                });
+                
+                modelSelect.disabled = false;
+            } else {
+                modelSelect.disabled = true;
+                modelSelect.innerHTML = '<option value="">Сначала выберите марку</option>';
+            }
+        }
+
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -373,12 +463,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             };
         }
 
-        // Улучшенная функция поиска с несколькими стратегиями
         async function searchPlaces(query) {
             if (query.length < 2) return [];
             
             try {
-                // Стратегия 1: Поиск с подстановочным символом (более широкий поиск)
                 const wildcardSearch = fetch(
                     `https://nominatim.openstreetmap.org/search?` +
                     `q=${encodeURIComponent(query + '*')}&` +
@@ -388,7 +476,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     `accept-language=ru`
                 );
                 
-                // Стратегия 2: Точный поиск по началу названия
                 const exactSearch = fetch(
                     `https://nominatim.openstreetmap.org/search?` +
                     `q=${encodeURIComponent(query)}&` +
@@ -398,7 +485,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     `accept-language=ru`
                 );
                 
-                // Выполняем оба запроса параллельно
                 const [wildcardResponse, exactResponse] = await Promise.all([
                     wildcardSearch,
                     exactSearch
@@ -413,15 +499,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exactResponse.json()
                 ]);
                 
-                // Объединяем результаты
                 const allData = [...wildcardData, ...exactData];
-                
-                // Удаляем дубликаты по place_id
                 const uniqueData = Array.from(
                     new Map(allData.map(item => [item.place_id, item])).values()
                 );
                 
-                // Фильтруем и форматируем результаты
                 const results = uniqueData
                     .filter(place => {
                         const types = ['city', 'town', 'village', 'hamlet', 'suburb', 'municipality', 'administrative'];
@@ -429,7 +511,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         const lowerQuery = query.toLowerCase();
                         const lowerName = name.toLowerCase();
                         
-                        // Показываем только населённые пункты и те, что начинаются с поискового запроса
                         return (types.includes(place.type) || place.class === 'place') &&
                                lowerName.startsWith(lowerQuery);
                     })
@@ -465,21 +546,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     })
                     .filter(place => place.name);
                 
-                // Сортируем по важности и алфавиту
                 results.sort((a, b) => {
-                    // Сначала по длине названия (короткие - выше)
                     const lenDiff = a.name.length - b.name.length;
                     if (Math.abs(lenDiff) > 3) return lenDiff;
                     
-                    // Потом по важности (importance)
                     const impDiff = b.importance - a.importance;
                     if (Math.abs(impDiff) > 0.1) return impDiff;
                     
-                    // Потом по алфавиту
                     return a.name.localeCompare(b.name, 'ru');
                 });
                 
-                // Ограничиваем до 15 результатов
                 return results.slice(0, 15);
                     
             } catch (error) {
@@ -493,12 +569,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const typeInput = document.getElementById('type');
             const carFields = document.getElementById('carFields');
             const truckFields = document.getElementById('truckFields');
+            const carInfoSection = document.getElementById('carInfoSection');
             const passengersInput = document.getElementById('passengers');
             const tonnageInput = document.getElementById('tonnage');
             const volumeInput = document.getElementById('volume');
+            const carBrandInput = document.getElementById('car_brand');
+            const carModelInput = document.getElementById('car_model');
 
             carFields.classList.remove('active');
             truckFields.classList.remove('active');
+            carInfoSection.classList.remove('active');
 
             if (role === 'Водитель легкового' || role === 'Попутчик') {
                 typeInput.value = 'Легковой';
@@ -506,17 +586,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 passengersInput.required = true;
                 tonnageInput.required = false;
                 volumeInput.required = false;
+                
+                if (role === 'Водитель легкового') {
+                    carInfoSection.classList.add('active');
+                    carBrandInput.required = true;
+                    carModelInput.required = true;
+                } else {
+                    carBrandInput.required = false;
+                    carModelInput.required = false;
+                }
             } else if (role === 'Водитель грузового' || role === 'Попутный груз') {
                 typeInput.value = 'Грузовой';
                 truckFields.classList.add('active');
                 passengersInput.required = false;
                 tonnageInput.required = true;
                 volumeInput.required = true;
+                
+                if (role === 'Водитель грузового') {
+                    carInfoSection.classList.add('active');
+                    carBrandInput.required = true;
+                    carModelInput.required = true;
+                } else {
+                    carBrandInput.required = false;
+                    carModelInput.required = false;
+                }
             } else {
                 typeInput.value = '';
                 passengersInput.required = false;
                 tonnageInput.required = false;
                 volumeInput.required = false;
+                carBrandInput.required = false;
+                carModelInput.required = false;
             }
         }
 
@@ -570,7 +670,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     listDiv.appendChild(itemDiv);
                 });
-            }, 300); // Уменьшил до 300ms для более быстрого отклика
+            }, 300);
             
             input.addEventListener('input', function() {
                 debouncedSearch(this.value);

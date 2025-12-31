@@ -174,18 +174,25 @@ $conn->close();
         }
         
         .description-box {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #34495e;
-            margin-top: 15px;
-        }
-        
-        .description-box p {
-            color: #2c3e50;
-            line-height: 1.6;
-            font-size: 15px;
-        }
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #34495e;
+    margin-top: 15px;
+    
+    /* Добавь эти строки: */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.description-box p {
+    color: #2c3e50;
+    line-height: 1.6;
+    font-size: 15px;
+    
+    /* Также стоит добавить сюда на всякий случай */
+    white-space: pre-wrap; /* Это сохранит переносы строк, которые сделал пользователь */
+}
         
         .badge {
             display: inline-block;

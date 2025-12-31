@@ -6,8 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $phone = $_POST['phone'];
 
-    // Подключаемся к базе данных InfinityFree
-    $conn = new mysqli('sql303.infinityfree.com', 'if0_40740361', '9r6mEbm5yS', 'if0_40740361_poputka24');
+    // Подключаемся к базе данных с новыми параметрами
+    $conn = new mysqli('localhost', 'poputka1_user', 'a16e*6bG8!Yu', 'poputka1_db', 3306);
     
     // Устанавливаем кодировку
     $conn->set_charset("utf8mb4");

@@ -399,12 +399,17 @@ $result = $conn->query($sql);
         }
         
         .order-description {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-        }
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+    
+    /* Добавь эти строки: */
+    word-wrap: break-word;       /* Старая версия для поддержки */
+    overflow-wrap: break-word;   /* Современный стандарт */
+    word-break: break-word;      /* Для Safari */
+}
         
         .order-description .info-label {
             margin-bottom: 8px;

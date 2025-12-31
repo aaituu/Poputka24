@@ -21,7 +21,7 @@ if (isset($_POST['logout'])) {
     <meta name="google-site-verification" content="C5bhZvmbzgtvYVGv8tE6-ioDbijcasfaNDv6rUoknzs" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="keywords" content="Poputka.kz, попутка, попутчик, poputki, сайт грузоперевозок, пассажирские перевозки, найти попутку">
-    <title>Попутка 24 - Пассажирские и грузовые перевозки по Казахстану</title>
+    <title>Попутка24 - поиск попутчиков и поездок</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="icon" href="/favicon.ico" >
     <meta name="description" content="Попутка 24 - Попутные Пассажирские и Грузовые перевозки по Казахстану и ближнему зарубежью">

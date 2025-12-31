@@ -9,22 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Получаем все марки автомобилей
-$brands_query = "SELECT id, name FROM car_brands ORDER BY name";
-$brands_result = $conn->query($brands_query);
-$brands = [];
-while ($row = $brands_result->fetch_assoc()) {
-    $brands[] = $row;
-}
-
-// Получаем все модели (для JavaScript)
-$models_query = "SELECT id, brand_id, name FROM car_models ORDER BY name";
-$models_result = $conn->query($models_query);
-$models = [];
-while ($row = $models_result->fetch_assoc()) {
-    $models[] = $row;
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type = $_POST['type'] ?? null;
     $from_location = $_POST['from'] ?? null;
@@ -42,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tonnage = ($role === 'Водитель грузового' || $role === 'Попутный груз') ? ($_POST['tonnage'] ?? null) : null;
     $volume = ($role === 'Водитель грузового' || $role === 'Попутный груз') ? ($_POST['volume'] ?? null) : null;
     
-    // Новые поля для автомобиля
+    // Поля автомобиля - теперь просто текстовые поля
     $car_brand = ($role === 'Водитель легкового' || $role === 'Водитель грузового') ? ($_POST['car_brand'] ?? null) : null;
     $car_model = ($role === 'Водитель легкового' || $role === 'Водитель грузового') ? ($_POST['car_model'] ?? null) : null;
 
@@ -60,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: orders.php");
             exit();
         } else {
-            $error = "Ошибка при создании заказа.";
+            $error = "Ошибка при создании заказа: " . $stmt->error;
         }
         $stmt->close();
     }
@@ -341,21 +325,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class="form-group">
                             <label for="car_brand">Марка автомобиля:</label>
-                            <select name="car_brand" id="car_brand" onchange="updateCarModels()">
-                                <option value="">Выберите марку</option>
-                                <?php foreach ($brands as $brand): ?>
-                                    <option value="<?= htmlspecialchars($brand['name']) ?>" data-id="<?= $brand['id'] ?>">
-                                        <?= htmlspecialchars($brand['name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" name="car_brand" id="car_brand" placeholder="Например: Toyota, Mercedes-Benz, BMW">
+                            <div class="hint-text">Укажите марку вашего автомобиля</div>
                         </div>
 
                         <div class="form-group">
                             <label for="car_model">Модель автомобиля:</label>
-                            <select name="car_model" id="car_model" disabled>
-                                <option value="">Сначала выберите марку</option>
-                            </select>
+                            <input type="text" name="car_model" id="car_model" placeholder="Например: Camry, E-Class, X5">
+                            <div class="hint-text">Укажите модель вашего автомобиля</div>
                         </div>
                     </div>
                 </div>
@@ -420,37 +397,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Данные моделей автомобилей из PHP
-        const carModelsData = <?= json_encode($models) ?>;
-        
-        function updateCarModels() {
-            const brandSelect = document.getElementById('car_brand');
-            const modelSelect = document.getElementById('car_model');
-            const selectedOption = brandSelect.options[brandSelect.selectedIndex];
-            const brandId = selectedOption.getAttribute('data-id');
-            
-            // Очищаем список моделей
-            modelSelect.innerHTML = '<option value="">Выберите модель</option>';
-            
-            if (brandId) {
-                // Фильтруем модели по выбранной марке
-                const filteredModels = carModelsData.filter(model => model.brand_id == brandId);
-                
-                // Добавляем модели в select
-                filteredModels.forEach(model => {
-                    const option = document.createElement('option');
-                    option.value = model.name;
-                    option.textContent = model.name;
-                    modelSelect.appendChild(option);
-                });
-                
-                modelSelect.disabled = false;
-            } else {
-                modelSelect.disabled = true;
-                modelSelect.innerHTML = '<option value="">Сначала выберите марку</option>';
-            }
-        }
-
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -463,6 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             };
         }
 
+        // Функция поиска через OpenStreetMap Nominatim
         async function searchPlaces(query) {
             if (query.length < 2) return [];
             
@@ -589,8 +536,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if (role === 'Водитель легкового') {
                     carInfoSection.classList.add('active');
-                    carBrandInput.required = true;
-                    carModelInput.required = true;
+                    carBrandInput.required = false;
+                    carModelInput.required = false;
                 } else {
                     carBrandInput.required = false;
                     carModelInput.required = false;
@@ -604,8 +551,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if (role === 'Водитель грузового') {
                     carInfoSection.classList.add('active');
-                    carBrandInput.required = true;
-                    carModelInput.required = true;
+                    carBrandInput.required = false;
+                    carModelInput.required = false;
                 } else {
                     carBrandInput.required = false;
                     carModelInput.required = false;
@@ -670,7 +617,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     listDiv.appendChild(itemDiv);
                 });
-            }, 300);
+            }, 500);
             
             input.addEventListener('input', function() {
                 debouncedSearch(this.value);

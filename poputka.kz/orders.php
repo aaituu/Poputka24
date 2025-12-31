@@ -9,7 +9,6 @@ if ($user_id === null) {
     exit();
 }
 
-// Фильтрация
 $from_filter = $_GET['from'] ?? '';
 $to_filter = $_GET['to'] ?? '';
 $role_filter = $_GET['role'] ?? '';
@@ -18,19 +17,15 @@ $sql = "SELECT orders.*, users.username, users.phone FROM orders
         LEFT JOIN users ON orders.user_id = users.id 
         WHERE 1=1";
 
-// Фильтрация по маршруту
 if ($from_filter && $to_filter) {
-    // Поиск точного маршрута: откуда → куда
     $escaped_from = $conn->real_escape_string($from_filter);
     $escaped_to = $conn->real_escape_string($to_filter);
     $sql .= " AND orders.from_location LIKE '%" . $escaped_from . "%' 
               AND orders.to_location LIKE '%" . $escaped_to . "%'";
 } elseif ($from_filter) {
-    // Поиск только по отправлению
     $escaped_from = $conn->real_escape_string($from_filter);
     $sql .= " AND orders.from_location LIKE '%" . $escaped_from . "%'";
 } elseif ($to_filter) {
-    // Поиск только по назначению
     $escaped_to = $conn->real_escape_string($to_filter);
     $sql .= " AND orders.to_location LIKE '%" . $escaped_to . "%'";
 }
@@ -399,17 +394,15 @@ $result = $conn->query($sql);
         }
         
         .order-description {
-    margin-top: 15px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #3498db;
-    
-    /* Добавь эти строки: */
-    word-wrap: break-word;       /* Старая версия для поддержки */
-    overflow-wrap: break-word;   /* Современный стандарт */
-    word-break: break-word;      /* Для Safari */
-}
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
         
         .order-description .info-label {
             margin-bottom: 8px;
@@ -600,7 +593,7 @@ $result = $conn->query($sql);
                     <div class="order-header">
                         <div>
                             <span class="badge <?= $badgeClass ?>">
-                                <?= htmlspecialchars($order['role']) ?>
+                                <?= htmlspecialchars($order['role'] ?? 'Роль не указана') ?>
                             </span>
                         </div>
                         <div class="info-item">
@@ -647,11 +640,18 @@ $result = $conn->query($sql);
                                 <span class="info-value"><?= $order['volume'] ?> м³</span>
                             </div>
                         <?php endif; ?>
+                        
+                        <?php if (!empty($order['car_brand'])): ?>
+                            <div class="info-item">
+                                <span class="info-label">🚗 Автомобиль:</span>
+                                <span class="info-value"><?= htmlspecialchars($order['car_brand']) ?> <?= htmlspecialchars($order['car_model'] ?? '') ?></span>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="order-description">
                         <div class="info-label">📝 Описание:</div>
-                        <div class="info-value"><?= htmlspecialchars($order['description']) ?></div>
+                        <div class="info-value"><?= nl2br(htmlspecialchars($order['description'])) ?></div>
                     </div>
                     
                     <div class="order-actions">
@@ -688,7 +688,6 @@ $result = $conn->query($sql);
     </div>
 
     <script>
-        // Debounce функция
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -701,12 +700,10 @@ $result = $conn->query($sql);
             };
         }
 
-        // Улучшенная функция поиска
         async function searchPlaces(query) {
             if (query.length < 2) return [];
             
             try {
-                // Два параллельных запроса для лучшего покрытия
                 const wildcardSearch = fetch(
                     `https://nominatim.openstreetmap.org/search?` +
                     `q=${encodeURIComponent(query + '*')}&` +
@@ -740,8 +737,6 @@ $result = $conn->query($sql);
                 ]);
                 
                 const allData = [...wildcardData, ...exactData];
-                
-                // Удаляем дубликаты
                 const uniqueData = Array.from(
                     new Map(allData.map(item => [item.place_id, item])).values()
                 );
@@ -785,7 +780,6 @@ $result = $conn->query($sql);
                     })
                     .filter(place => place.name);
                 
-                // Сортировка
                 results.sort((a, b) => {
                     const lenDiff = a.name.length - b.name.length;
                     if (Math.abs(lenDiff) > 3) return lenDiff;
@@ -852,7 +846,7 @@ $result = $conn->query($sql);
                     
                     listDiv.appendChild(itemDiv);
                 });
-            }, 300);
+            }, 500);
             
             input.addEventListener('input', function() {
                 debouncedSearch(this.value);
